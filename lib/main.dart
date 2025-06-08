@@ -20,28 +20,31 @@ class MyApp extends StatelessWidget {
         ),
         useMaterial3: true,
         cardTheme: CardTheme(
-          elevation: 8,
+          elevation: 4,
           shadowColor: Colors.black.withOpacity(0.1),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(8),
           ),
           margin: EdgeInsets.zero,
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            elevation: 2,
+            elevation: 1,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(6),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            minimumSize: const Size(0, 32),
           ),
         ),
         inputDecorationTheme: InputDecorationTheme(
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(6),
           ),
           filled: true,
           fillColor: Colors.grey.shade50,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          isDense: true,
         ),
       ),
       home: const ToolMergerHomePage(),
@@ -123,14 +126,15 @@ class _ToolMergerHomePageState extends State<ToolMergerHomePage> {
       appBar: AppBar(
         title: const Text(
           'Tool Merger',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         backgroundColor: Theme.of(context).colorScheme.primaryContainer,
         foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
         elevation: 0,
+        toolbarHeight: 48,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(8.0),
         child: Column(
           children: [
             // 上半部分 - 项目列表区域
@@ -138,54 +142,59 @@ class _ToolMergerHomePageState extends State<ToolMergerHomePage> {
               flex: 1,
               child: Card(
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(8.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // 标题和过滤器行
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.folder_outlined,
-                            color: Theme.of(context).colorScheme.primary,
-                            size: 24,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '项目列表',
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
+                      SizedBox(
+                        height: 36,
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.folder_outlined,
                               color: Theme.of(context).colorScheme.primary,
+                              size: 18,
                             ),
-                          ),
-                          const Spacer(),
-                          SizedBox(
-                            width: 200,
-                            child: TextField(
-                              controller: _filterController,
-                              decoration: const InputDecoration(
-                                hintText: '搜索项目...',
-                                prefixIcon: Icon(Icons.search),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                isDense: true,
+                            const SizedBox(width: 6),
+                            Text(
+                              '项目列表',
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.primary,
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          ElevatedButton.icon(
-                            onPressed: selectedProject != null ? () {
-                              // TODO: 实现生成逻辑
-                            } : null,
-                            icon: const Icon(Icons.build),
-                            label: const Text('Generate'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Theme.of(context).colorScheme.secondary,
-                              foregroundColor: Theme.of(context).colorScheme.onSecondary,
+                            const Spacer(),
+                            SizedBox(
+                              width: 150,
+                              height: 32,
+                              child: TextField(
+                                controller: _filterController,
+                                decoration: const InputDecoration(
+                                  hintText: '搜索...',
+                                  prefixIcon: Icon(Icons.search, size: 16),
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 8),
+                            SizedBox(
+                              height: 32,
+                              child: ElevatedButton.icon(
+                                onPressed: selectedProject != null ? () {
+                                  // TODO: 实现生成逻辑
+                                } : null,
+                                icon: const Icon(Icons.build, size: 14),
+                                label: const Text('Generate', style: TextStyle(fontSize: 12)),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Theme.of(context).colorScheme.secondary,
+                                  foregroundColor: Theme.of(context).colorScheme.onSecondary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
                       // 项目表格
                       Expanded(
                         child: Row(
@@ -194,23 +203,18 @@ class _ToolMergerHomePageState extends State<ToolMergerHomePage> {
                               child: Container(
                                 decoration: BoxDecoration(
                                   border: Border.all(color: Colors.grey.shade300),
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Column(
                                   children: [
                                     // 表头
                                     Container(
-                                      height: 48,
+                                      height: 32,
                                       decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: [
-                                            Theme.of(context).colorScheme.primaryContainer,
-                                            Theme.of(context).colorScheme.primaryContainer.withOpacity(0.8),
-                                          ],
-                                        ),
+                                        color: Theme.of(context).colorScheme.primaryContainer,
                                         borderRadius: const BorderRadius.only(
-                                          topLeft: Radius.circular(8),
-                                          topRight: Radius.circular(8),
+                                          topLeft: Radius.circular(6),
+                                          topRight: Radius.circular(6),
                                         ),
                                       ),
                                       child: Row(
@@ -222,6 +226,7 @@ class _ToolMergerHomePageState extends State<ToolMergerHomePage> {
                                                 '项目名称',
                                                 style: TextStyle(
                                                   fontWeight: FontWeight.bold,
+                                                  fontSize: 12,
                                                   color: Theme.of(context).colorScheme.onPrimaryContainer,
                                                 ),
                                               ),
@@ -234,6 +239,7 @@ class _ToolMergerHomePageState extends State<ToolMergerHomePage> {
                                                 '创建时间',
                                                 style: TextStyle(
                                                   fontWeight: FontWeight.bold,
+                                                  fontSize: 12,
                                                   color: Theme.of(context).colorScheme.onPrimaryContainer,
                                                 ),
                                               ),
@@ -246,6 +252,7 @@ class _ToolMergerHomePageState extends State<ToolMergerHomePage> {
                                                 '更新时间',
                                                 style: TextStyle(
                                                   fontWeight: FontWeight.bold,
+                                                  fontSize: 12,
                                                   color: Theme.of(context).colorScheme.onPrimaryContainer,
                                                 ),
                                               ),
@@ -261,33 +268,26 @@ class _ToolMergerHomePageState extends State<ToolMergerHomePage> {
                                             child: Column(
                                               mainAxisAlignment: MainAxisAlignment.center,
                                               children: [
-                                                Container(
-                                                  padding: const EdgeInsets.all(24),
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.grey.shade100,
-                                                    borderRadius: BorderRadius.circular(50),
-                                                  ),
-                                                  child: Icon(
-                                                    Icons.create_new_folder_outlined,
-                                                    size: 48,
-                                                    color: Colors.grey.shade400,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 24),
-                                                Text(
-                                                  '暂无项目',
-                                                  style: TextStyle(
-                                                    color: Colors.grey.shade700,
-                                                    fontSize: 18,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
+                                                Icon(
+                                                  Icons.create_new_folder_outlined,
+                                                  size: 32,
+                                                  color: Colors.grey.shade400,
                                                 ),
                                                 const SizedBox(height: 8),
                                                 Text(
-                                                  '点击右侧 "Create" 按钮创建第一个项目',
+                                                  '暂无项目',
+                                                  style: TextStyle(
+                                                    color: Colors.grey.shade600,
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  '点击右侧 "Create" 按钮创建',
                                                   style: TextStyle(
                                                     color: Colors.grey.shade500,
-                                                    fontSize: 14,
+                                                    fontSize: 11,
                                                   ),
                                                 ),
                                               ],
@@ -299,7 +299,7 @@ class _ToolMergerHomePageState extends State<ToolMergerHomePage> {
                                           final project = projects[index];
                                           final isSelected = selectedProject == project;
                                           return Container(
-                                            height: 56,
+                                            height: 36,
                                             decoration: BoxDecoration(
                                               color: isSelected 
                                                 ? Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3)
@@ -323,7 +323,7 @@ class _ToolMergerHomePageState extends State<ToolMergerHomePage> {
                                                   });
                                                 },
                                                 child: Padding(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                                   child: Row(
                                                     children: [
                                                       Expanded(
@@ -335,14 +335,15 @@ class _ToolMergerHomePageState extends State<ToolMergerHomePage> {
                                                               color: isSelected 
                                                                 ? Theme.of(context).colorScheme.primary
                                                                 : Colors.grey.shade600,
-                                                              size: 20,
+                                                              size: 14,
                                                             ),
-                                                            const SizedBox(width: 8),
+                                                            const SizedBox(width: 4),
                                                             Expanded(
                                                               child: Text(
                                                                 project.name ?? '',
                                                                 style: TextStyle(
                                                                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                                                  fontSize: 12,
                                                                   color: isSelected 
                                                                     ? Theme.of(context).colorScheme.primary
                                                                     : null,
@@ -360,7 +361,7 @@ class _ToolMergerHomePageState extends State<ToolMergerHomePage> {
                                                             _formatDateTime(project.createTime),
                                                             style: TextStyle(
                                                               color: Colors.grey.shade700,
-                                                              fontSize: 13,
+                                                              fontSize: 10,
                                                             ),
                                                           ),
                                                         ),
@@ -372,7 +373,7 @@ class _ToolMergerHomePageState extends State<ToolMergerHomePage> {
                                                             _formatDateTime(project.updateTime),
                                                             style: TextStyle(
                                                               color: Colors.grey.shade700,
-                                                              fontSize: 13,
+                                                              fontSize: 10,
                                                             ),
                                                           ),
                                                         ),
@@ -390,10 +391,10 @@ class _ToolMergerHomePageState extends State<ToolMergerHomePage> {
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 16),
+                            const SizedBox(width: 8),
                             // 右侧按钮列
                             SizedBox(
-                              width: 140,
+                              width: 80,
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.start,
                                 children: [
@@ -411,7 +412,7 @@ class _ToolMergerHomePageState extends State<ToolMergerHomePage> {
                                     },
                                     color: Colors.green,
                                   ),
-                                  const SizedBox(height: 12),
+                                  const SizedBox(height: 4),
                                   _buildActionButton(
                                     icon: Icons.delete,
                                     label: 'Delete',
@@ -429,19 +430,19 @@ class _ToolMergerHomePageState extends State<ToolMergerHomePage> {
                                     } : null,
                                     color: Colors.red,
                                   ),
-                                  const SizedBox(height: 12),
+                                  const SizedBox(height: 4),
                                   _buildActionButton(
                                     icon: Icons.keyboard_arrow_up,
-                                    label: 'Move Up',
+                                    label: 'Up',
                                     onPressed: selectedProject != null ? () {
                                       // TODO: 实现向上移动项目逻辑
                                     } : null,
                                     color: Colors.blue,
                                   ),
-                                  const SizedBox(height: 12),
+                                  const SizedBox(height: 4),
                                   _buildActionButton(
                                     icon: Icons.keyboard_arrow_down,
-                                    label: 'Move Down',
+                                    label: 'Down',
                                     onPressed: selectedProject != null ? () {
                                       // TODO: 实现向下移动项目逻辑
                                     } : null,
@@ -453,13 +454,14 @@ class _ToolMergerHomePageState extends State<ToolMergerHomePage> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
                       // 输出路径行
                       Container(
-                        padding: const EdgeInsets.all(16),
+                        height: 36,
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(6),
                           border: Border.all(color: Colors.grey.shade300),
                         ),
                         child: Row(
@@ -467,33 +469,41 @@ class _ToolMergerHomePageState extends State<ToolMergerHomePage> {
                             Icon(
                               Icons.folder_open,
                               color: Theme.of(context).colorScheme.primary,
+                              size: 16,
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 6),
                             Text(
                               '输出路径:',
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
+                                fontSize: 12,
                                 color: Theme.of(context).colorScheme.primary,
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 8),
                             Expanded(
-                              child: TextField(
-                                controller: _outputPathController,
-                                decoration: const InputDecoration(
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  isDense: true,
+                              child: SizedBox(
+                                height: 28,
+                                child: TextField(
+                                  controller: _outputPathController,
+                                  style: const TextStyle(fontSize: 11),
+                                  decoration: const InputDecoration(
+                                    contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                                  ),
+                                  readOnly: true,
                                 ),
-                                readOnly: true,
                               ),
                             ),
-                            const SizedBox(width: 12),
-                            ElevatedButton.icon(
-                              onPressed: selectedProject != null ? () {
-                                // TODO: 实现选择输出路径逻辑
-                              } : null,
-                              icon: const Icon(Icons.folder_open),
-                              label: const Text('Select'),
+                            const SizedBox(width: 8),
+                            SizedBox(
+                              height: 28,
+                              child: ElevatedButton.icon(
+                                onPressed: selectedProject != null ? () {
+                                  // TODO: 实现选择输出路径逻辑
+                                } : null,
+                                icon: const Icon(Icons.folder_open, size: 12),
+                                label: const Text('Select', style: TextStyle(fontSize: 10)),
+                              ),
                             ),
                           ],
                         ),
@@ -503,57 +513,64 @@ class _ToolMergerHomePageState extends State<ToolMergerHomePage> {
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 8),
             // 下半部分 - 项目项列表区域
             Expanded(
               flex: 1,
               child: Card(
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(8.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // 标题行
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.list_alt,
-                            color: Theme.of(context).colorScheme.secondary,
-                            size: 24,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '项目文件',
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
+                      SizedBox(
+                        height: 36,
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.list_alt,
                               color: Theme.of(context).colorScheme.secondary,
+                              size: 18,
                             ),
-                          ),
-                          const Spacer(),
-                          if (selectedProject != null) ...[
-                            Chip(
-                              avatar: Icon(
-                                Icons.folder_open,
-                                size: 16,
-                                color: Theme.of(context).colorScheme.onSecondaryContainer,
+                            const SizedBox(width: 6),
+                            Text(
+                              '项目文件',
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.secondary,
                               ),
-                              label: Text('${currentItems.length} 个文件'),
-                              backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
                             ),
-                            const SizedBox(width: 8),
-                            Chip(
-                              avatar: Icon(
-                                Icons.check_circle,
-                                size: 16,
-                                color: Colors.green.shade700,
+                            const Spacer(),
+                            if (selectedProject != null) ...[
+                              Chip(
+                                avatar: Icon(
+                                  Icons.folder_open,
+                                  size: 12,
+                                  color: Theme.of(context).colorScheme.onSecondaryContainer,
+                                ),
+                                label: Text('${currentItems.length}', style: const TextStyle(fontSize: 10)),
+                                backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
+                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                visualDensity: VisualDensity.compact,
                               ),
-                              label: Text('${currentItems.where((item) => item.enabled == true).length} 已启用'),
-                              backgroundColor: Colors.green.shade100,
-                            ),
+                              const SizedBox(width: 4),
+                              Chip(
+                                avatar: Icon(
+                                  Icons.check_circle,
+                                  size: 12,
+                                  color: Colors.green.shade700,
+                                ),
+                                label: Text('${currentItems.where((item) => item.enabled == true).length}', style: const TextStyle(fontSize: 10)),
+                                backgroundColor: Colors.green.shade100,
+                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                visualDensity: VisualDensity.compact,
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
                       Expanded(
                         child: Row(
                           children: [
@@ -561,23 +578,18 @@ class _ToolMergerHomePageState extends State<ToolMergerHomePage> {
                               child: Container(
                                 decoration: BoxDecoration(
                                   border: Border.all(color: Colors.grey.shade300),
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Column(
                                   children: [
                                     // 表头
                                     Container(
-                                      height: 48,
+                                      height: 32,
                                       decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: [
-                                            Theme.of(context).colorScheme.secondaryContainer,
-                                            Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.8),
-                                          ],
-                                        ),
+                                        color: Theme.of(context).colorScheme.secondaryContainer,
                                         borderRadius: const BorderRadius.only(
-                                          topLeft: Radius.circular(8),
-                                          topRight: Radius.circular(8),
+                                          topLeft: Radius.circular(6),
+                                          topRight: Radius.circular(6),
                                         ),
                                       ),
                                       child: Row(
@@ -589,6 +601,7 @@ class _ToolMergerHomePageState extends State<ToolMergerHomePage> {
                                                 '启用',
                                                 style: TextStyle(
                                                   fontWeight: FontWeight.bold,
+                                                  fontSize: 12,
                                                   color: Theme.of(context).colorScheme.onSecondaryContainer,
                                                 ),
                                               ),
@@ -601,6 +614,7 @@ class _ToolMergerHomePageState extends State<ToolMergerHomePage> {
                                                 '文件名',
                                                 style: TextStyle(
                                                   fontWeight: FontWeight.bold,
+                                                  fontSize: 12,
                                                   color: Theme.of(context).colorScheme.onSecondaryContainer,
                                                 ),
                                               ),
@@ -613,6 +627,7 @@ class _ToolMergerHomePageState extends State<ToolMergerHomePage> {
                                                 '文件路径',
                                                 style: TextStyle(
                                                   fontWeight: FontWeight.bold,
+                                                  fontSize: 12,
                                                   color: Theme.of(context).colorScheme.onSecondaryContainer,
                                                 ),
                                               ),
@@ -628,39 +643,32 @@ class _ToolMergerHomePageState extends State<ToolMergerHomePage> {
                                             child: Column(
                                               mainAxisAlignment: MainAxisAlignment.center,
                                               children: [
-                                                Container(
-                                                  padding: const EdgeInsets.all(24),
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.grey.shade100,
-                                                    borderRadius: BorderRadius.circular(50),
-                                                  ),
-                                                  child: Icon(
-                                                    selectedProject == null 
-                                                      ? Icons.folder_outlined
-                                                      : Icons.note_add_outlined,
-                                                    size: 48,
-                                                    color: Colors.grey.shade400,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 24),
-                                                Text(
+                                                Icon(
                                                   selectedProject == null 
-                                                    ? '请先选择一个项目'
-                                                    : '暂无文件',
-                                                  style: TextStyle(
-                                                    color: Colors.grey.shade700,
-                                                    fontSize: 18,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
+                                                    ? Icons.folder_outlined
+                                                    : Icons.note_add_outlined,
+                                                  size: 32,
+                                                  color: Colors.grey.shade400,
                                                 ),
                                                 const SizedBox(height: 8),
                                                 Text(
                                                   selectedProject == null 
-                                                    ? '从左侧项目列表中选择一个项目'
-                                                    : '拖拽文件到此处添加到项目中',
+                                                    ? '请先选择项目'
+                                                    : '暂无文件',
+                                                  style: TextStyle(
+                                                    color: Colors.grey.shade600,
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  selectedProject == null 
+                                                    ? '从上方选择一个项目'
+                                                    : '拖拽文件到此处',
                                                   style: TextStyle(
                                                     color: Colors.grey.shade500,
-                                                    fontSize: 14,
+                                                    fontSize: 11,
                                                   ),
                                                 ),
                                               ],
@@ -672,7 +680,7 @@ class _ToolMergerHomePageState extends State<ToolMergerHomePage> {
                                               final item = currentItems[index];
                                               final isSelected = selectedItem == item;
                                               return Container(
-                                                height: 56,
+                                                height: 36,
                                                 decoration: BoxDecoration(
                                                   color: isSelected 
                                                     ? Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.3)
@@ -693,20 +701,24 @@ class _ToolMergerHomePageState extends State<ToolMergerHomePage> {
                                                       });
                                                     },
                                                     child: Padding(
-                                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                                       child: Row(
                                                         children: [
                                                           Expanded(
                                                             flex: 1,
                                                             child: Center(
-                                                              child: Checkbox(
-                                                                value: item.enabled ?? false,
-                                                                onChanged: (value) {
-                                                                  setState(() {
-                                                                    item.enabled = value;
-                                                                  });
-                                                                },
-                                                                activeColor: Theme.of(context).colorScheme.secondary,
+                                                              child: Transform.scale(
+                                                                scale: 0.8,
+                                                                child: Checkbox(
+                                                                  value: item.enabled ?? false,
+                                                                  onChanged: (value) {
+                                                                    setState(() {
+                                                                      item.enabled = value;
+                                                                    });
+                                                                  },
+                                                                  activeColor: Theme.of(context).colorScheme.secondary,
+                                                                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                                ),
                                                               ),
                                                             ),
                                                           ),
@@ -716,17 +728,18 @@ class _ToolMergerHomePageState extends State<ToolMergerHomePage> {
                                                               children: [
                                                                 Icon(
                                                                   _getFileIcon(item.path ?? ''),
-                                                                  size: 20,
+                                                                  size: 14,
                                                                   color: isSelected 
                                                                     ? Theme.of(context).colorScheme.secondary
                                                                     : Colors.grey.shade600,
                                                                 ),
-                                                                const SizedBox(width: 8),
+                                                                const SizedBox(width: 4),
                                                                 Expanded(
                                                                   child: Text(
                                                                     _getFileName(item.path ?? ''),
                                                                     style: TextStyle(
                                                                       fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                                                      fontSize: 12,
                                                                       color: isSelected 
                                                                         ? Theme.of(context).colorScheme.secondary
                                                                         : null,
@@ -740,12 +753,12 @@ class _ToolMergerHomePageState extends State<ToolMergerHomePage> {
                                                           Expanded(
                                                             flex: 4,
                                                             child: Padding(
-                                                              padding: const EdgeInsets.only(left: 8),
+                                                              padding: const EdgeInsets.only(left: 4),
                                                               child: Text(
                                                                 item.path ?? '',
                                                                 style: TextStyle(
                                                                   color: Colors.grey.shade700,
-                                                                  fontSize: 13,
+                                                                  fontSize: 10,
                                                                 ),
                                                                 overflow: TextOverflow.ellipsis,
                                                               ),
@@ -764,10 +777,10 @@ class _ToolMergerHomePageState extends State<ToolMergerHomePage> {
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 16),
+                            const SizedBox(width: 8),
                             // 右侧按钮列
                             SizedBox(
-                              width: 140,
+                              width: 80,
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.start,
                                 children: [
@@ -788,19 +801,19 @@ class _ToolMergerHomePageState extends State<ToolMergerHomePage> {
                                     } : null,
                                     color: Colors.red,
                                   ),
-                                  const SizedBox(height: 12),
+                                  const SizedBox(height: 4),
                                   _buildActionButton(
                                     icon: Icons.keyboard_arrow_up,
-                                    label: 'Move Up',
+                                    label: 'Up',
                                     onPressed: selectedProject != null && selectedItem != null ? () {
                                       // TODO: 实现向上移动项目项逻辑
                                     } : null,
                                     color: Colors.blue,
                                   ),
-                                  const SizedBox(height: 12),
+                                  const SizedBox(height: 4),
                                   _buildActionButton(
                                     icon: Icons.keyboard_arrow_down,
-                                    label: 'Move Down',
+                                    label: 'Down',
                                     onPressed: selectedProject != null && selectedItem != null ? () {
                                       // TODO: 实现向下移动项目项逻辑
                                     } : null,
@@ -822,7 +835,8 @@ class _ToolMergerHomePageState extends State<ToolMergerHomePage> {
       ),
       bottomNavigationBar: selectedProject != null
         ? Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            height: 32,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surfaceVariant,
               border: Border(
@@ -836,44 +850,45 @@ class _ToolMergerHomePageState extends State<ToolMergerHomePage> {
               children: [
                 Icon(
                   Icons.info_outline,
-                  size: 16,
+                  size: 12,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 4),
                 Text(
-                  '当前项目: ${selectedProject?.name}',
+                  '当前: ${selectedProject?.name}',
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.w500,
+                    fontSize: 11,
                   ),
                 ),
                 const Spacer(),
                 if (currentItems.isNotEmpty) ...[
                   Icon(
                     Icons.folder,
-                    size: 16,
+                    size: 12,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 2),
                   Text(
-                    '${currentItems.length} 文件',
+                    '${currentItems.length}',
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      fontSize: 12,
+                      fontSize: 10,
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 8),
                   Icon(
                     Icons.check_circle,
-                    size: 16,
+                    size: 12,
                     color: Colors.green.shade600,
                   ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 2),
                   Text(
-                    '${currentItems.where((item) => item.enabled == true).length} 已启用',
+                    '${currentItems.where((item) => item.enabled == true).length}',
                     style: TextStyle(
                       color: Colors.green.shade600,
-                      fontSize: 12,
+                      fontSize: 10,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -893,14 +908,16 @@ class _ToolMergerHomePageState extends State<ToolMergerHomePage> {
   }) {
     return SizedBox(
       width: double.infinity,
+      height: 28,
       child: ElevatedButton.icon(
         onPressed: onPressed,
-        icon: Icon(icon, size: 18),
-        label: Text(label),
+        icon: Icon(icon, size: 12),
+        label: Text(label, style: const TextStyle(fontSize: 10)),
         style: ElevatedButton.styleFrom(
           backgroundColor: onPressed != null ? color : Colors.grey.shade300,
           foregroundColor: onPressed != null ? Colors.white : Colors.grey.shade600,
-          elevation: onPressed != null ? 2 : 0,
+          elevation: onPressed != null ? 1 : 0,
+          padding: const EdgeInsets.symmetric(horizontal: 6),
         ),
       ),
     );
