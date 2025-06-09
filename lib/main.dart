@@ -237,7 +237,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                       '点击右侧 "Create" 按钮创建',
                                                       style: TextStyle(
                                                         color: Colors.grey.shade500,
-                                                        fontSize: 11,
+                                                        fontSize: AppConfig.statusFontSize,
                                                       ),
                                                     ),
                                                   ],
@@ -684,7 +684,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                         controller.selectedProject.value == null ? '从上方选择一个项目' : '点击 "Add Dirs" 或拖拽目录到此处',
                                                         style: TextStyle(
                                                           color: Colors.grey.shade500,
-                                                          fontSize: 11,
+                                                          fontSize: AppConfig.statusFontSize,
                                                         ),
                                                       ),
                                                     ],
@@ -894,7 +894,7 @@ class ToolMergerHomePage extends StatelessWidget {
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w500,
-                        fontSize: 11,
+                        fontSize: AppConfig.statusFontSize,
                       ),
                     ),
                     const Spacer(),
@@ -909,7 +909,7 @@ class ToolMergerHomePage extends StatelessWidget {
                         '${controller.currentItems.length}',
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          fontSize: 10,
+                          fontSize: AppConfig.buttonFontSize,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -923,7 +923,7 @@ class ToolMergerHomePage extends StatelessWidget {
                         '${controller.enabledItemsCount}',
                         style: TextStyle(
                           color: Colors.green.shade600,
-                          fontSize: 10,
+                          fontSize: AppConfig.buttonFontSize,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -1045,9 +1045,9 @@ void _showLastGenerateLog(ProjectController controller) {
                 child: SingleChildScrollView(
                   child: Obx(() => Text(
                     controller.lastGenerateLog.value,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'monospace',
-                      fontSize: 12,
+                      fontSize: AppConfig.secondaryFontSize,
                     ),
                   )),
                 ),

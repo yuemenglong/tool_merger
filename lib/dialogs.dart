@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'config.dart';
 
 class CreateProjectDialog extends StatefulWidget {
   const CreateProjectDialog({super.key});
@@ -196,7 +197,7 @@ class ConfirmDeleteDialog extends StatelessWidget {
               '此操作无法撤销，请谨慎操作。',
               style: TextStyle(
                 color: Colors.grey.shade600,
-                fontSize: 12,
+                fontSize: AppConfig.secondaryFontSize,
                 fontStyle: FontStyle.italic,
               ),
             ),
