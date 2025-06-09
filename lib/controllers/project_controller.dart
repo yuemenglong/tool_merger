@@ -307,6 +307,10 @@ class ProjectController extends GetxController {
   Future<void> toggleItemEnabled(ProjectItem item) async {
     item.enabled = !(item.enabled ?? false);
     selectedProject.value!.updateTime = DateTime.now();
+    
+    // 手动触发UI更新
+    currentItems.refresh();
+    
     await saveProjects();
   }
 

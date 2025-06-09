@@ -284,7 +284,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                                           project.name ?? '',
                                                                           style: TextStyle(
                                                                             fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                                                                            fontSize: 12,
+                                                                            fontSize: 14,
                                                                             color: isSelected ? Theme.of(context).colorScheme.primary : null,
                                                                           ),
                                                                           overflow: TextOverflow.ellipsis,
@@ -300,7 +300,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                                       _formatDateTime(project.createTime),
                                                                       style: TextStyle(
                                                                         color: Colors.grey.shade700,
-                                                                        fontSize: 10,
+                                                                        fontSize: 12,
                                                                       ),
                                                                     ),
                                                                   ),
@@ -312,7 +312,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                                       _formatDateTime(project.updateTime),
                                                                       style: TextStyle(
                                                                         color: Colors.grey.shade700,
-                                                                        fontSize: 10,
+                                                                        fontSize: 12,
                                                                       ),
                                                                     ),
                                                                   ),
@@ -747,7 +747,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                                             _getFileName(item.path ?? ''),
                                                                             style: TextStyle(
                                                                               fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                                                                              fontSize: 12,
+                                                                              fontSize: 14,
                                                                               color: isSelected ? Theme.of(context).colorScheme.secondary : null,
                                                                             ),
                                                                             overflow: TextOverflow.ellipsis,
@@ -764,7 +764,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                                         item.path ?? '',
                                                                         style: TextStyle(
                                                                           color: Colors.grey.shade700,
-                                                                          fontSize: 10,
+                                                                          fontSize: 12,
                                                                         ),
                                                                         overflow: TextOverflow.ellipsis,
                                                                       ),
