@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:cross_file/cross_file.dart';
 import '../entity/entity.dart';
+import '../services/xml_merger.dart';
 
 class ProjectController extends GetxController {
   // 响应式变量
@@ -356,4 +357,57 @@ class ProjectController extends GetxController {
       Get.snackbar('提示', '所选文件已存在于项目中');
     }
   }
+
+  // 生成项目合并文件
+  Future<void> generateProject() async {
+    if (selectedProject.value == null) {
+      Get.snackbar('错误', '请先选择一个项目');
+      return;
+    }
+
+    final project = selectedProject.value!;
+    if (project.outputPath == null || project.outputPath!.isEmpty) {
+      Get.snackbar('错误', '请先设置输出路径');
+      return;
+    }
+
+    final enabledItems = currentItems.where((item) => item.enabled == true).toList();
+    if (enabledItems.isEmpty) {
+      Get.snackbar('错误', '没有启用的文件');
+      return;
+    }
+
+    try {
+      // 显示开始生成的提示
+      Get.snackbar('提示', '开始生成文件，共 ${enabledItems.length} 个文件...');
+      
+      // 创建输出文件路径
+      final outputDir = Directory(project.outputPath!);
+      if (!await outputDir.exists()) {
+        await outputDir.create(recursive: true);
+      }
+
+      final outputFile = File('${project.outputPath}/${project.name}.xml');
+      
+      // 使用 XmlMerger 生成 XML 内容
+      final xmlContent = await XmlMerger.mergeXml(project);
+      
+      // 写入文件
+      await outputFile.writeAsString(xmlContent, encoding: utf8);
+      
+      // 更新项目时间并保存
+      project.updateTime = DateTime.now();
+      await saveProjects();
+      
+      Get.snackbar(
+        '成功', 
+        '文件生成成功!\n路径: ${outputFile.path}\n大小: ${(xmlContent.length / 1024).toStringAsFixed(1)} KB',
+        duration: const Duration(seconds: 4),
+      );
+    } catch (e) {
+      Get.snackbar('错误', '生成文件失败: $e');
+    }
+  }
+
+
 } 

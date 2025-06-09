@@ -123,8 +123,8 @@ class ToolMergerHomePage extends StatelessWidget {
                               height: 32,
                               child: Obx(() => ElevatedButton.icon(
                                     onPressed: controller.selectedProject.value != null
-                                        ? () {
-                                            // TODO: 实现生成逻辑
+                                        ? () async {
+                                            await controller.generateProject();
                                           }
                                         : null,
                                     icon: const Icon(Icons.build, size: 14),
