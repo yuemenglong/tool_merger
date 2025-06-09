@@ -89,12 +89,14 @@ class ProjectController extends GetxController {
             path: '/path/to/file1.txt',
             enabled: true,
             sortOrder: 0,
+            isExclude: false,
           ),
           ProjectItem(
             name: 'file2.cpp',
             path: '/path/to/file2.cpp',
             enabled: false,
             sortOrder: 1,
+            isExclude: false,
           ),
         ],
       ),
@@ -110,6 +112,7 @@ class ProjectController extends GetxController {
             path: '/path/to/document.md',
             enabled: true,
             sortOrder: 0,
+            isExclude: false,
           ),
         ],
       ),
@@ -269,12 +272,13 @@ class ProjectController extends GetxController {
           // 检查是否已存在
           final exists = currentItems.any((item) => item.path == filePath);
           if (!exists) {
-            final newItem = ProjectItem(
-              name: fileName,
-              path: filePath,
-              enabled: true,
-              sortOrder: currentItems.length,
-            );
+                      final newItem = ProjectItem(
+            name: fileName,
+            path: filePath,
+            enabled: true,
+            sortOrder: currentItems.length,
+            isExclude: false,
+          );
             
             currentItems.add(newItem);
             selectedProject.value!.items = currentItems.toList();
@@ -303,6 +307,17 @@ class ProjectController extends GetxController {
   Future<void> toggleItemEnabled(ProjectItem item) async {
     item.enabled = !(item.enabled ?? false);
     selectedProject.value!.updateTime = DateTime.now();
+    await saveProjects();
+  }
+
+  // 切换项目项排除状态
+  Future<void> toggleItemExclude(ProjectItem item) async {
+    item.isExclude = !(item.isExclude ?? false);
+    selectedProject.value!.updateTime = DateTime.now();
+    
+    // 手动触发UI更新
+    currentItems.refresh();
+    
     await saveProjects();
   }
 
@@ -396,6 +411,7 @@ class ProjectController extends GetxController {
             path: filePath,
             enabled: true,
             sortOrder: currentItems.length,
+            isExclude: false,
           );
           
           currentItems.add(newItem);

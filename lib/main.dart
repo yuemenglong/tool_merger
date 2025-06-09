@@ -640,6 +640,19 @@ class ToolMergerHomePage extends StatelessWidget {
                                                 ),
                                               ),
                                             ),
+                                            Expanded(
+                                              flex: 1,
+                                              child: Center(
+                                                child: Text(
+                                                  '状态',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 12,
+                                                    color: Theme.of(context).colorScheme.onSecondaryContainer,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
                                           ],
                                         ),
                                       ),
@@ -754,6 +767,24 @@ class ToolMergerHomePage extends StatelessWidget {
                                                                           fontSize: 10,
                                                                         ),
                                                                         overflow: TextOverflow.ellipsis,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                  Expanded(
+                                                                    flex: 1,
+                                                                    child: Center(
+                                                                      child: Transform.scale(
+                                                                        scale: 0.7,
+                                                                        child: Switch(
+                                                                          value: !(item.isExclude ?? false),
+                                                                          onChanged: (value) async {
+                                                                            await controller.toggleItemExclude(item);
+                                                                          },
+                                                                          activeColor: Colors.green,
+                                                                          inactiveThumbColor: Colors.red,
+                                                                          inactiveTrackColor: Colors.red.withOpacity(0.3),
+                                                                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                                        ),
                                                                       ),
                                                                     ),
                                                                   ),

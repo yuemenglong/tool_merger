@@ -137,6 +137,14 @@ class XmlMerger {
     // 使用对象来包装统计变量，以便在递归中正确传递引用
     final stats = _MergeStats();
     
+    // 创建排除路径集合
+    final excludePaths = <String>{};
+    for (final item in project.items ?? []) {
+      if (item.isExclude == true && item.path != null) {
+        excludePaths.add(item.path!);
+      }
+    }
+    
     // 创建日志函数
     void log(String message) {
       print(message);
@@ -147,6 +155,14 @@ class XmlMerger {
     for (final item in enabledItems) {
       try {
         final itemPath = item.path ?? '';
+        
+        // 检查是否被排除
+        if (item.isExclude == true) {
+          log('跳过排除项: ${item.name} (${itemPath})');
+          stats.skippedFilesIgnored++;
+          continue;
+        }
+        
         final itemFile = File(itemPath);
         final itemDirectory = Directory(itemPath);
         
@@ -221,6 +237,7 @@ class XmlMerger {
             2, // 缩进级别 2（在 project > dir 内）
             stats,
             log,
+            excludePaths,
           );
           
           buffer.writeln('  </dir>');
@@ -275,6 +292,7 @@ class XmlMerger {
     int indentLevel,
     _MergeStats stats,
     Function(String) log,
+    Set<String> excludePaths,
   ) async {
     final List<Directory> subdirs = [];
     final List<File> files = [];
@@ -283,6 +301,18 @@ class XmlMerger {
       // 遍历目录中的所有条目
       await for (final entity in currentDir.list()) {
         final entityPath = entity.path;
+
+        // 检查是否在排除路径中
+        if (excludePaths.contains(entityPath)) {
+          if (entity is Directory) {
+            stats.skippedDirs++;
+            log('${_indent(indentLevel)}跳过排除目录: ${_getFileName(entityPath)}');
+          } else {
+            stats.skippedFilesIgnored++;
+            log('${_indent(indentLevel)}跳过排除文件: ${_getFileName(entityPath)}');
+          }
+          continue;
+        }
 
         // 检查路径是否应该被忽略
         if (shouldIgnorePath(entityPath)) {
@@ -327,6 +357,7 @@ class XmlMerger {
         indentLevel + 1,
         stats,
         log,
+        excludePaths,
       );
       
       buffer.writeln('${_indent(indentLevel)}</dir>');

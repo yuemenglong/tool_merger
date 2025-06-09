@@ -48,12 +48,14 @@ class ProjectItem {
   String? path;
   int? sortOrder;
   bool? enabled;
+  bool? isExclude;
 
   ProjectItem({
     this.name,
     this.path,
     this.sortOrder,
     this.enabled,
+    this.isExclude,
   });
 
   ProjectItem.fromJson(Map<String, dynamic> json) {
@@ -61,6 +63,7 @@ class ProjectItem {
     path = json['path'];
     sortOrder = json['sortOrder'];
     enabled = json['enabled'];
+    isExclude = json['isExclude'] ?? false;
   }
 
   Map<String, dynamic> toJson() {
@@ -69,6 +72,7 @@ class ProjectItem {
     data['path'] = path;
     data['sortOrder'] = sortOrder;
     data['enabled'] = enabled;
+    data['isExclude'] = isExclude ?? false;
     return data;
   }
 }
