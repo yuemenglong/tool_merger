@@ -7,6 +7,7 @@ import 'package:desktop_drop/desktop_drop.dart';
 import 'package:cross_file/cross_file.dart';
 import '../entity/entity.dart';
 import '../services/xml_merger.dart';
+import '../utils/windows_clipboard.dart';
 
 class ProjectController extends GetxController {
   // 响应式变量
@@ -17,6 +18,7 @@ class ProjectController extends GetxController {
   final RxString filterText = ''.obs;
   final RxString outputPath = ''.obs;
   final RxString lastGenerateLog = ''.obs;
+  final RxBool isGenerating = false.obs;
 
   // 过滤后的项目列表
   List<Project> get filteredProjects {
@@ -551,12 +553,28 @@ class ProjectController extends GetxController {
       logBuffer.writeln('文件写入完成: ${outputFile.path}');
       
       // 验证写入的文件
+      bool clipboardSuccess = false;
       final writtenFile = File(outputFile.path);
       if (await writtenFile.exists()) {
         final fileSize = await writtenFile.length();
         logBuffer.writeln('文件验证成功:');
         logBuffer.writeln('  - 文件大小: ${(fileSize / 1024).toStringAsFixed(1)} KB');
         logBuffer.writeln('  - 文件路径: ${writtenFile.path}');
+        
+        // 将文件复制到剪切板 (仅 Windows)
+        logBuffer.writeln('');
+        logBuffer.writeln('=== 剪切板操作 ===');
+        if (Platform.isWindows) {
+          logBuffer.writeln('尝试将文件复制到剪切板...');
+          clipboardSuccess = await WindowsClipboard.copyFileToClipboard(outputFile.path);
+          if (clipboardSuccess) {
+            logBuffer.writeln('文件已复制到剪切板，可以使用 Ctrl+V 粘贴');
+          } else {
+            logBuffer.writeln('警告: 文件复制到剪切板失败');
+          }
+        } else {
+          logBuffer.writeln('跳过剪切板操作 (仅支持 Windows)');
+        }
       } else {
         logBuffer.writeln('警告: 文件写入后验证失败');
       }
@@ -581,10 +599,18 @@ class ProjectController extends GetxController {
       project.updateTime = DateTime.now();
       await saveProjects();
       
+      // 构建成功消息
+      String successMessage = '文件生成成功!\n路径: ${outputFile.path}\n大小: ${(xmlContent.length / 1024).toStringAsFixed(1)} KB';
+      
+      // 如果剪切板操作成功，添加提示
+      if (clipboardSuccess) {
+        successMessage += '\n\n文件已复制到剪切板，可使用 Ctrl+V 粘贴';
+      }
+      
       Get.snackbar(
         '成功', 
-        '文件生成成功!\n路径: ${outputFile.path}\n大小: ${(xmlContent.length / 1024).toStringAsFixed(1)} KB',
-        duration: const Duration(seconds: 4),
+        successMessage,
+        duration: const Duration(seconds: 5),
       );
     } catch (e, stackTrace) {
       final endTime = DateTime.now();
