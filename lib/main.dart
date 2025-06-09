@@ -330,8 +330,8 @@ class ToolMergerHomePage extends StatelessWidget {
                                                                         icon: const Icon(Icons.build, size: 12),
                                                                         label: Text('Generate', style: TextStyle(fontSize: AppConfig.buttonFontSize)),
                                                                         style: ElevatedButton.styleFrom(
-                                                                          backgroundColor: Theme.of(context).colorScheme.secondary,
-                                                                          foregroundColor: Theme.of(context).colorScheme.onSecondary,
+                                                                          backgroundColor: Colors.green,
+                                                                          foregroundColor: Colors.white,
                                                                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                                                           minimumSize: const Size(0, 24),
                                                                         ),
