@@ -432,6 +432,11 @@ class ProjectController extends GetxController {
 
   // 生成项目合并文件
   Future<void> generateProject([Project? targetProject]) async {
+    // 检查是否正在生成
+    if (isGenerating.value) {
+      return;
+    }
+
     final project = targetProject ?? selectedProject.value;
     if (project == null) {
       Get.snackbar('错误', '请先选择一个项目');
@@ -448,6 +453,9 @@ class ProjectController extends GetxController {
       Get.snackbar('错误', '没有启用的文件');
       return;
     }
+
+    // 设置生成状态
+    isGenerating.value = true;
 
     final logBuffer = StringBuffer();
     final startTime = DateTime.now();
@@ -471,9 +479,6 @@ class ProjectController extends GetxController {
         logBuffer.writeln('${i + 1}. $status ${item.name} -> ${item.path}');
       }
       logBuffer.writeln('');
-      
-      // 显示开始生成的提示
-      Get.snackbar('提示', '开始生成文件，共 ${enabledItems.length} 个文件...');
       
       // 创建输出文件路径
       logBuffer.writeln('=== 输出文件准备 ===');
@@ -607,7 +612,7 @@ class ProjectController extends GetxController {
         successMessage += '\n\n文件已复制到剪切板，可使用 Ctrl+V 粘贴';
       }
       
-      Get.snackbar(
+            Get.snackbar(
         '成功', 
         successMessage,
         duration: const Duration(seconds: 5),
@@ -639,6 +644,9 @@ class ProjectController extends GetxController {
       await saveProjects();
       
       Get.snackbar('错误', '生成文件失败: $e');
+    } finally {
+      // 重置生成状态
+      isGenerating.value = false;
     }
   }
 

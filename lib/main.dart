@@ -322,10 +322,10 @@ class ToolMergerHomePage extends StatelessWidget {
                                                                   child: Center(
                                                                     child: SizedBox(
                                                                       height: 24,
-                                                                      child: ElevatedButton.icon(
-                                                                        onPressed: () async {
+                                                                      child: Obx(() => ElevatedButton.icon(
+                                                                        onPressed: !controller.isGenerating.value ? () async {
                                                                           await controller.generateProject(project);
-                                                                        },
+                                                                        } : null,
                                                                         icon: const Icon(Icons.build, size: 12),
                                                                         label: const Text('Generate', style: TextStyle(fontSize: 10)),
                                                                         style: ElevatedButton.styleFrom(
@@ -334,7 +334,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                                                           minimumSize: const Size(0, 24),
                                                                         ),
-                                                                      ),
+                                                                      )),
                                                                     ),
                                                                   ),
                                                                 ),
