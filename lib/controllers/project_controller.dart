@@ -16,6 +16,7 @@ class ProjectController extends GetxController {
   final Rx<ProjectItem?> selectedItem = Rx<ProjectItem?>(null);
   final RxString filterText = ''.obs;
   final RxString outputPath = ''.obs;
+  final RxString lastGenerateLog = ''.obs;
 
   // 过滤后的项目列表
   List<Project> get filteredProjects {
@@ -446,7 +447,17 @@ class ProjectController extends GetxController {
       return;
     }
 
+    final logBuffer = StringBuffer();
+    final startTime = DateTime.now();
+    
     try {
+      logBuffer.writeln('=== Generate Log ===');
+      logBuffer.writeln('开始时间: ${startTime.toString()}');
+      logBuffer.writeln('项目名称: ${project.name}');
+      logBuffer.writeln('输出路径: ${project.outputPath}');
+      logBuffer.writeln('启用文件数: ${enabledItems.length}');
+      logBuffer.writeln('');
+      
       // 显示开始生成的提示
       Get.snackbar('提示', '开始生成文件，共 ${enabledItems.length} 个文件...');
       
@@ -454,15 +465,31 @@ class ProjectController extends GetxController {
       final outputDir = Directory(project.outputPath!);
       if (!await outputDir.exists()) {
         await outputDir.create(recursive: true);
+        logBuffer.writeln('创建输出目录: ${project.outputPath}');
       }
 
       final outputFile = File('${project.outputPath}/${project.name}.xml');
+      logBuffer.writeln('输出文件: ${outputFile.path}');
+      logBuffer.writeln('');
       
       // 使用 XmlMerger 生成 XML 内容
+      logBuffer.writeln('开始生成 XML 内容...');
       final xmlContent = await XmlMerger.mergeXml(project);
+      logBuffer.writeln('XML 内容生成完成，大小: ${(xmlContent.length / 1024).toStringAsFixed(1)} KB');
       
       // 写入文件
       await outputFile.writeAsString(xmlContent, encoding: utf8);
+      logBuffer.writeln('文件写入完成');
+      
+      final endTime = DateTime.now();
+      final duration = endTime.difference(startTime);
+      logBuffer.writeln('');
+      logBuffer.writeln('结束时间: ${endTime.toString()}');
+      logBuffer.writeln('总耗时: ${duration.inMilliseconds} ms');
+      logBuffer.writeln('生成状态: 成功');
+      
+      // 保存日志到全局变量
+      lastGenerateLog.value = logBuffer.toString();
       
       // 更新项目时间并保存
       project.updateTime = DateTime.now();
@@ -474,9 +501,24 @@ class ProjectController extends GetxController {
         duration: const Duration(seconds: 4),
       );
     } catch (e) {
+      final endTime = DateTime.now();
+      final duration = endTime.difference(startTime);
+      logBuffer.writeln('');
+      logBuffer.writeln('结束时间: ${endTime.toString()}');
+      logBuffer.writeln('总耗时: ${duration.inMilliseconds} ms');
+      logBuffer.writeln('生成状态: 失败');
+      logBuffer.writeln('错误信息: $e');
+      
+      // 保存错误日志到全局变量
+      lastGenerateLog.value = logBuffer.toString();
+      project.updateTime = DateTime.now();
+      await saveProjects();
+      
       Get.snackbar('错误', '生成文件失败: $e');
     }
   }
+
+
 
 
 } 

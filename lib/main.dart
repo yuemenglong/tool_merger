@@ -415,6 +415,17 @@ class ToolMergerHomePage extends StatelessWidget {
                                             : null,
                                         color: Colors.blue,
                                       )),
+                                  const SizedBox(height: 4),
+                                  Obx(() => _buildActionButton(
+                                        icon: Icons.article,
+                                        label: 'Log',
+                                        onPressed: controller.lastGenerateLog.value.isNotEmpty
+                                            ? () {
+                                                _showLastGenerateLog(controller);
+                                              }
+                                            : null,
+                                        color: Colors.orange,
+                                      )),
                                 ],
                               ),
                             ),
@@ -952,4 +963,76 @@ class ToolMergerHomePage extends StatelessWidget {
     return '${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')} '
         '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
+}
+
+// 显示最后一次生成的日志
+void _showLastGenerateLog(ProjectController controller) {
+  if (controller.lastGenerateLog.value.isEmpty) {
+    Get.snackbar('提示', '还没有生成日志');
+    return;
+  }
+  
+  Get.dialog(
+    Dialog(
+      child: Container(
+        width: 600,
+        height: 500,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.article, color: Colors.grey.shade600),
+                const SizedBox(width: 8),
+                const Text(
+                  '最后一次生成日志',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  onPressed: () => Get.back(),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: SingleChildScrollView(
+                  child: Obx(() => Text(
+                    controller.lastGenerateLog.value,
+                    style: const TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 12,
+                    ),
+                  )),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                ElevatedButton(
+                  onPressed: () => Get.back(),
+                  child: const Text('关闭'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
