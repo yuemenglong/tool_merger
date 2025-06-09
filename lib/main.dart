@@ -6,6 +6,7 @@ import 'package:desktop_drop/desktop_drop.dart';
 import 'entity/entity.dart';
 import 'dialogs.dart';
 import 'controllers/project_controller.dart';
+import 'config.dart';
 
 void main() {
   runApp(const MyApp());
@@ -160,7 +161,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                 '项目名称',
                                                 style: TextStyle(
                                                   fontWeight: FontWeight.bold,
-                                                  fontSize: 12,
+                                                  fontSize: AppConfig.secondaryFontSize,
                                                   color: Theme.of(context).colorScheme.onPrimaryContainer,
                                                 ),
                                               ),
@@ -173,7 +174,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                 '创建时间',
                                                 style: TextStyle(
                                                   fontWeight: FontWeight.bold,
-                                                  fontSize: 12,
+                                                  fontSize: AppConfig.secondaryFontSize,
                                                   color: Theme.of(context).colorScheme.onPrimaryContainer,
                                                 ),
                                               ),
@@ -186,7 +187,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                 '更新时间',
                                                 style: TextStyle(
                                                   fontWeight: FontWeight.bold,
-                                                  fontSize: 12,
+                                                  fontSize: AppConfig.secondaryFontSize,
                                                   color: Theme.of(context).colorScheme.onPrimaryContainer,
                                                 ),
                                               ),
@@ -199,7 +200,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                 '操作',
                                                 style: TextStyle(
                                                   fontWeight: FontWeight.bold,
-                                                  fontSize: 12,
+                                                  fontSize: AppConfig.secondaryFontSize,
                                                   color: Theme.of(context).colorScheme.onPrimaryContainer,
                                                 ),
                                               ),
@@ -236,7 +237,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                       '点击右侧 "Create" 按钮创建',
                                                       style: TextStyle(
                                                         color: Colors.grey.shade500,
-                                                        fontSize: 11,
+                                                        fontSize: AppConfig.statusFontSize,
                                                       ),
                                                     ),
                                                   ],
@@ -284,7 +285,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                                           project.name ?? '',
                                                                           style: TextStyle(
                                                                             fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                                                                            fontSize: 14,
+                                                                            fontSize: AppConfig.primaryFontSize,
                                                                             color: isSelected ? Theme.of(context).colorScheme.primary : null,
                                                                           ),
                                                                           overflow: TextOverflow.ellipsis,
@@ -300,7 +301,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                                       _formatDateTime(project.createTime),
                                                                       style: TextStyle(
                                                                         color: Colors.grey.shade700,
-                                                                        fontSize: 12,
+                                                                        fontSize: AppConfig.secondaryFontSize,
                                                                       ),
                                                                     ),
                                                                   ),
@@ -312,7 +313,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                                       _formatDateTime(project.updateTime),
                                                                       style: TextStyle(
                                                                         color: Colors.grey.shade700,
-                                                                        fontSize: 12,
+                                                                        fontSize: AppConfig.secondaryFontSize,
                                                                       ),
                                                                     ),
                                                                   ),
@@ -327,10 +328,10 @@ class ToolMergerHomePage extends StatelessWidget {
                                                                           await controller.generateProject(project);
                                                                         } : null,
                                                                         icon: const Icon(Icons.build, size: 12),
-                                                                        label: const Text('Generate', style: TextStyle(fontSize: 10)),
+                                                                        label: Text('Generate', style: TextStyle(fontSize: AppConfig.buttonFontSize)),
                                                                         style: ElevatedButton.styleFrom(
-                                                                          backgroundColor: Theme.of(context).colorScheme.secondary,
-                                                                          foregroundColor: Theme.of(context).colorScheme.onSecondary,
+                                                                          backgroundColor: AppConfig.generateButtonColor,
+                                                                          foregroundColor: Colors.white,
                                                                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                                                           minimumSize: const Size(0, 24),
                                                                         ),
@@ -372,7 +373,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                         await controller.createProject(result);
                                       }
                                     },
-                                    color: Colors.green,
+                                    color: AppConfig.createButtonColor,
                                   ),
                                   const SizedBox(height: 4),
                                   Obx(() => _buildActionButton(
@@ -392,7 +393,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                 }
                                               }
                                             : null,
-                                        color: Colors.red,
+                                        color: AppConfig.deleteButtonColor,
                                       )),
                                   const SizedBox(height: 4),
                                   Obx(() => _buildActionButton(
@@ -403,7 +404,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                 await controller.moveProjectUp(controller.selectedProject.value!);
                                               }
                                             : null,
-                                        color: Colors.blue,
+                                        color: AppConfig.moveButtonColor,
                                       )),
                                   const SizedBox(height: 4),
                                   Obx(() => _buildActionButton(
@@ -414,7 +415,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                 await controller.moveProjectDown(controller.selectedProject.value!);
                                               }
                                             : null,
-                                        color: Colors.blue,
+                                        color: AppConfig.moveButtonColor,
                                       )),
                                   const SizedBox(height: 4),
                                   Obx(() => _buildActionButton(
@@ -425,7 +426,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                 _showLastGenerateLog(controller);
                                               }
                                             : null,
-                                        color: Colors.orange,
+                                        color: AppConfig.logButtonColor,
                                       )),
                                 ],
                               ),
@@ -455,7 +456,7 @@ class ToolMergerHomePage extends StatelessWidget {
                               '输出路径:',
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
-                                fontSize: 12,
+                                fontSize: AppConfig.secondaryFontSize,
                                 color: Theme.of(context).colorScheme.primary,
                               ),
                             ),
@@ -465,7 +466,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                 height: 28,
                                 child: Obx(() => TextField(
                                       controller: TextEditingController(text: controller.outputPath.value),
-                                      style: const TextStyle(fontSize: 11),
+                                      style: TextStyle(fontSize: AppConfig.inputFontSize),
                                       decoration: const InputDecoration(
                                         contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                                       ),
@@ -483,7 +484,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                           }
                                         : null,
                                     icon: const Icon(Icons.folder_open, size: 12),
-                                    label: const Text('Select', style: TextStyle(fontSize: 10)),
+                                                                            label: Text('Select', style: TextStyle(fontSize: AppConfig.buttonFontSize)),
                                   )),
                             ),
                           ],
@@ -533,7 +534,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                         size: 12,
                                         color: Theme.of(context).colorScheme.onSecondaryContainer,
                                       ),
-                                      label: Text('${controller.currentItems.length}', style: const TextStyle(fontSize: 10)),
+                                                                              label: Text('${controller.currentItems.length}', style: TextStyle(fontSize: AppConfig.buttonFontSize)),
                                       backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
                                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                       visualDensity: VisualDensity.compact,
@@ -543,10 +544,10 @@ class ToolMergerHomePage extends StatelessWidget {
                                       avatar: Icon(
                                         Icons.check_circle,
                                         size: 12,
-                                        color: Colors.green.shade700,
+                                        color: AppConfig.enabledCountColor.shade700,
                                       ),
-                                      label: Text('${controller.enabledItemsCount}', style: const TextStyle(fontSize: 10)),
-                                      backgroundColor: Colors.green.shade100,
+                                                                              label: Text('${controller.enabledItemsCount}', style: TextStyle(fontSize: AppConfig.buttonFontSize)),
+                                      backgroundColor: AppConfig.enabledCountColor.shade100,
                                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                       visualDensity: VisualDensity.compact,
                                     ),
@@ -558,7 +559,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                           await controller.addDirectoriesToProject();
                                         },
                                         icon: const Icon(Icons.folder_open, size: 12),
-                                        label: const Text('Add Dirs', style: TextStyle(fontSize: 10)),
+                                        label: Text('Add Dirs', style: TextStyle(fontSize: AppConfig.buttonFontSize)),
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: Theme.of(context).colorScheme.secondary,
                                           foregroundColor: Theme.of(context).colorScheme.onSecondary,
@@ -608,7 +609,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                   '启用',
                                                   style: TextStyle(
                                                     fontWeight: FontWeight.bold,
-                                                    fontSize: 12,
+                                                    fontSize: AppConfig.secondaryFontSize,
                                                     color: Theme.of(context).colorScheme.onSecondaryContainer,
                                                   ),
                                                 ),
@@ -621,7 +622,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                   '目录名',
                                                   style: TextStyle(
                                                     fontWeight: FontWeight.bold,
-                                                    fontSize: 12,
+                                                    fontSize: AppConfig.secondaryFontSize,
                                                     color: Theme.of(context).colorScheme.onSecondaryContainer,
                                                   ),
                                                 ),
@@ -634,7 +635,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                   '目录路径',
                                                   style: TextStyle(
                                                     fontWeight: FontWeight.bold,
-                                                    fontSize: 12,
+                                                    fontSize: AppConfig.secondaryFontSize,
                                                     color: Theme.of(context).colorScheme.onSecondaryContainer,
                                                   ),
                                                 ),
@@ -647,7 +648,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                   '状态',
                                                   style: TextStyle(
                                                     fontWeight: FontWeight.bold,
-                                                    fontSize: 12,
+                                                    fontSize: AppConfig.secondaryFontSize,
                                                     color: Theme.of(context).colorScheme.onSecondaryContainer,
                                                   ),
                                                 ),
@@ -683,7 +684,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                         controller.selectedProject.value == null ? '从上方选择一个项目' : '点击 "Add Dirs" 或拖拽目录到此处',
                                                         style: TextStyle(
                                                           color: Colors.grey.shade500,
-                                                          fontSize: 11,
+                                                          fontSize: AppConfig.statusFontSize,
                                                         ),
                                                       ),
                                                     ],
@@ -747,7 +748,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                                             _getFileName(item.path ?? ''),
                                                                             style: TextStyle(
                                                                               fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                                                                              fontSize: 14,
+                                                                              fontSize: AppConfig.primaryFontSize,
                                                                               color: isSelected ? Theme.of(context).colorScheme.secondary : null,
                                                                             ),
                                                                             overflow: TextOverflow.ellipsis,
@@ -764,7 +765,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                                         item.path ?? '',
                                                                         style: TextStyle(
                                                                           color: Colors.grey.shade700,
-                                                                          fontSize: 12,
+                                                                          fontSize: AppConfig.secondaryFontSize,
                                                                         ),
                                                                         overflow: TextOverflow.ellipsis,
                                                                       ),
@@ -780,9 +781,9 @@ class ToolMergerHomePage extends StatelessWidget {
                                                                           onChanged: (value) async {
                                                                             await controller.toggleItemExclude(item);
                                                                           },
-                                                                          activeColor: Colors.green,
-                                                                          inactiveThumbColor: Colors.red,
-                                                                          inactiveTrackColor: Colors.red.withOpacity(0.3),
+                                                                          activeColor: AppConfig.excludeSwitchActiveColor,
+                                                                          inactiveThumbColor: AppConfig.excludeSwitchInactiveColor,
+                                                                          inactiveTrackColor: AppConfig.excludeSwitchInactiveColor.withOpacity(0.3),
                                                                           materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                                                         ),
                                                                       ),
@@ -828,7 +829,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                 }
                                               }
                                             : null,
-                                        color: Colors.red,
+                                        color: AppConfig.deleteButtonColor,
                                       )),
                                   const SizedBox(height: 4),
                                   Obx(() => _buildActionButton(
@@ -839,7 +840,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                 await controller.moveItemUp(controller.selectedItem.value!);
                                               }
                                             : null,
-                                        color: Colors.blue,
+                                        color: AppConfig.moveButtonColor,
                                       )),
                                   const SizedBox(height: 4),
                                   Obx(() => _buildActionButton(
@@ -850,7 +851,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                 await controller.moveItemDown(controller.selectedItem.value!);
                                               }
                                             : null,
-                                        color: Colors.blue,
+                                        color: AppConfig.moveButtonColor,
                                       )),
                                 ],
                               ),
@@ -893,7 +894,7 @@ class ToolMergerHomePage extends StatelessWidget {
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w500,
-                        fontSize: 11,
+                        fontSize: AppConfig.statusFontSize,
                       ),
                     ),
                     const Spacer(),
@@ -908,21 +909,21 @@ class ToolMergerHomePage extends StatelessWidget {
                         '${controller.currentItems.length}',
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          fontSize: 10,
+                          fontSize: AppConfig.buttonFontSize,
                         ),
                       ),
                       const SizedBox(width: 8),
                       Icon(
                         Icons.check_circle,
                         size: 12,
-                        color: Colors.green.shade600,
+                        color: AppConfig.enabledCountColor.shade600,
                       ),
                       const SizedBox(width: 2),
                       Text(
                         '${controller.enabledItemsCount}',
                         style: TextStyle(
-                          color: Colors.green.shade600,
-                          fontSize: 10,
+                          color: AppConfig.enabledCountColor.shade600,
+                          fontSize: AppConfig.buttonFontSize,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -947,7 +948,7 @@ class ToolMergerHomePage extends StatelessWidget {
       child: ElevatedButton.icon(
         onPressed: onPressed,
         icon: Icon(icon, size: 12),
-        label: Text(label, style: const TextStyle(fontSize: 10)),
+        label: Text(label, style: TextStyle(fontSize: AppConfig.buttonFontSize)),
         style: ElevatedButton.styleFrom(
           backgroundColor: onPressed != null ? color : Colors.grey.shade300,
           foregroundColor: onPressed != null ? Colors.white : Colors.grey.shade600,
@@ -1044,9 +1045,9 @@ void _showLastGenerateLog(ProjectController controller) {
                 child: SingleChildScrollView(
                   child: Obx(() => Text(
                     controller.lastGenerateLog.value,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'monospace',
-                      fontSize: 12,
+                      fontSize: AppConfig.secondaryFontSize,
                     ),
                   )),
                 ),
