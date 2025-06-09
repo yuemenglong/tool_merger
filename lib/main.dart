@@ -330,7 +330,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                                         icon: const Icon(Icons.build, size: 12),
                                                                         label: Text('Generate', style: TextStyle(fontSize: AppConfig.buttonFontSize)),
                                                                         style: ElevatedButton.styleFrom(
-                                                                          backgroundColor: Colors.green,
+                                                                          backgroundColor: AppConfig.generateButtonColor,
                                                                           foregroundColor: Colors.white,
                                                                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                                                           minimumSize: const Size(0, 24),
@@ -373,7 +373,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                         await controller.createProject(result);
                                       }
                                     },
-                                    color: Colors.green,
+                                    color: AppConfig.createButtonColor,
                                   ),
                                   const SizedBox(height: 4),
                                   Obx(() => _buildActionButton(
@@ -393,7 +393,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                 }
                                               }
                                             : null,
-                                        color: Colors.red,
+                                        color: AppConfig.deleteButtonColor,
                                       )),
                                   const SizedBox(height: 4),
                                   Obx(() => _buildActionButton(
@@ -404,7 +404,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                 await controller.moveProjectUp(controller.selectedProject.value!);
                                               }
                                             : null,
-                                        color: Colors.blue,
+                                        color: AppConfig.moveButtonColor,
                                       )),
                                   const SizedBox(height: 4),
                                   Obx(() => _buildActionButton(
@@ -415,7 +415,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                 await controller.moveProjectDown(controller.selectedProject.value!);
                                               }
                                             : null,
-                                        color: Colors.blue,
+                                        color: AppConfig.moveButtonColor,
                                       )),
                                   const SizedBox(height: 4),
                                   Obx(() => _buildActionButton(
@@ -426,7 +426,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                 _showLastGenerateLog(controller);
                                               }
                                             : null,
-                                        color: Colors.orange,
+                                        color: AppConfig.logButtonColor,
                                       )),
                                 ],
                               ),
@@ -544,10 +544,10 @@ class ToolMergerHomePage extends StatelessWidget {
                                       avatar: Icon(
                                         Icons.check_circle,
                                         size: 12,
-                                        color: Colors.green.shade700,
+                                        color: AppConfig.enabledCountColor.shade700,
                                       ),
                                                                               label: Text('${controller.enabledItemsCount}', style: TextStyle(fontSize: AppConfig.buttonFontSize)),
-                                      backgroundColor: Colors.green.shade100,
+                                      backgroundColor: AppConfig.enabledCountColor.shade100,
                                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                       visualDensity: VisualDensity.compact,
                                     ),
@@ -781,9 +781,9 @@ class ToolMergerHomePage extends StatelessWidget {
                                                                           onChanged: (value) async {
                                                                             await controller.toggleItemExclude(item);
                                                                           },
-                                                                          activeColor: Colors.green,
-                                                                          inactiveThumbColor: Colors.red,
-                                                                          inactiveTrackColor: Colors.red.withOpacity(0.3),
+                                                                          activeColor: AppConfig.excludeSwitchActiveColor,
+                                                                          inactiveThumbColor: AppConfig.excludeSwitchInactiveColor,
+                                                                          inactiveTrackColor: AppConfig.excludeSwitchInactiveColor.withOpacity(0.3),
                                                                           materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                                                         ),
                                                                       ),
@@ -829,7 +829,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                 }
                                               }
                                             : null,
-                                        color: Colors.red,
+                                        color: AppConfig.deleteButtonColor,
                                       )),
                                   const SizedBox(height: 4),
                                   Obx(() => _buildActionButton(
@@ -840,7 +840,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                 await controller.moveItemUp(controller.selectedItem.value!);
                                               }
                                             : null,
-                                        color: Colors.blue,
+                                        color: AppConfig.moveButtonColor,
                                       )),
                                   const SizedBox(height: 4),
                                   Obx(() => _buildActionButton(
@@ -851,7 +851,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                 await controller.moveItemDown(controller.selectedItem.value!);
                                               }
                                             : null,
-                                        color: Colors.blue,
+                                        color: AppConfig.moveButtonColor,
                                       )),
                                 ],
                               ),
@@ -916,13 +916,13 @@ class ToolMergerHomePage extends StatelessWidget {
                       Icon(
                         Icons.check_circle,
                         size: 12,
-                        color: Colors.green.shade600,
+                        color: AppConfig.enabledCountColor.shade600,
                       ),
                       const SizedBox(width: 2),
                       Text(
                         '${controller.enabledItemsCount}',
                         style: TextStyle(
-                          color: Colors.green.shade600,
+                          color: AppConfig.enabledCountColor.shade600,
                           fontSize: AppConfig.buttonFontSize,
                           fontWeight: FontWeight.w500,
                         ),
