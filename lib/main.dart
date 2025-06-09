@@ -18,9 +18,14 @@ class MyApp extends StatelessWidget {
     return GetMaterialApp(
       title: 'Tool Merger',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF2196F3),
-          brightness: Brightness.light,
+        colorScheme: ColorScheme.light(
+          primary: Colors.grey.shade600,
+          primaryContainer: Colors.grey.shade50,
+          onPrimaryContainer: Colors.grey.shade600,
+          secondary: Colors.grey.shade600,
+          onSecondary: Colors.white,
+          surface: Colors.white,
+          onSurface: Colors.grey.shade600,
         ),
         useMaterial3: true,
         cardTheme: CardTheme(
