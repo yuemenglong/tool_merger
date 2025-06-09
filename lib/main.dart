@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:desktop_drop/desktop_drop.dart';
@@ -1024,6 +1025,24 @@ void _showLastGenerateLog(ProjectController controller) {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    await Clipboard.setData(ClipboardData(text: controller.lastGenerateLog.value));
+                    Get.snackbar(
+                      '成功',
+                      '日志已复制到剪切板',
+                      duration: const Duration(seconds: 2),
+                      snackPosition: SnackPosition.BOTTOM,
+                    );
+                  },
+                  icon: const Icon(Icons.copy, size: 16),
+                  label: const Text('复制'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 8),
                 ElevatedButton(
                   onPressed: () => Get.back(),
                   child: const Text('关闭'),

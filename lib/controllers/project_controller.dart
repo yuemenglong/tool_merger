@@ -451,42 +451,128 @@ class ProjectController extends GetxController {
     final startTime = DateTime.now();
     
     try {
-      logBuffer.writeln('=== Generate Log ===');
+      logBuffer.writeln('=== Tool Merger Generate Log ===');
       logBuffer.writeln('开始时间: ${startTime.toString()}');
       logBuffer.writeln('项目名称: ${project.name}');
       logBuffer.writeln('输出路径: ${project.outputPath}');
-      logBuffer.writeln('启用文件数: ${enabledItems.length}');
+      logBuffer.writeln('');
+      
+      // 显示启用的项目项详情
+      logBuffer.writeln('=== 项目项列表 ===');
+      logBuffer.writeln('总项目项数: ${projectItems.length}');
+      logBuffer.writeln('启用项目项数: ${enabledItems.length}');
+      logBuffer.writeln('');
+      
+      for (int i = 0; i < projectItems.length; i++) {
+        final item = projectItems[i];
+        final status = (item.enabled ?? false) ? '[启用]' : '[禁用]';
+        logBuffer.writeln('${i + 1}. $status ${item.name} -> ${item.path}');
+      }
       logBuffer.writeln('');
       
       // 显示开始生成的提示
       Get.snackbar('提示', '开始生成文件，共 ${enabledItems.length} 个文件...');
       
       // 创建输出文件路径
+      logBuffer.writeln('=== 输出文件准备 ===');
       final outputDir = Directory(project.outputPath!);
       if (!await outputDir.exists()) {
         await outputDir.create(recursive: true);
         logBuffer.writeln('创建输出目录: ${project.outputPath}');
+      } else {
+        logBuffer.writeln('输出目录已存在: ${project.outputPath}');
       }
 
       final outputFile = File('${project.outputPath}/${project.name}.xml');
-      logBuffer.writeln('输出文件: ${outputFile.path}');
+      logBuffer.writeln('输出文件路径: ${outputFile.path}');
       logBuffer.writeln('');
       
       // 使用 XmlMerger 生成 XML 内容
-      logBuffer.writeln('开始生成 XML 内容...');
+      logBuffer.writeln('=== XML 生成过程 ===');
+      logBuffer.writeln('开始调用 XmlMerger.mergeXml()...');
+      
+      // 记录每个启用项目项的处理过程
+      int processedCount = 0;
+      int totalFiles = 0;
+      int totalDirs = 0;
+      
+      for (final item in enabledItems) {
+        processedCount++;
+        logBuffer.writeln('[$processedCount/${enabledItems.length}] 处理项目项: ${item.name}');
+        logBuffer.writeln('  路径: ${item.path}');
+        
+        // 检查是文件还是目录
+        final entity = FileSystemEntity.typeSync(item.path ?? '');
+        if (entity == FileSystemEntityType.file) {
+          logBuffer.writeln('  类型: 文件');
+          totalFiles++;
+        } else if (entity == FileSystemEntityType.directory) {
+          logBuffer.writeln('  类型: 目录');
+          totalDirs++;
+          
+          // 如果是目录，扫描其中的文件
+          try {
+            final dir = Directory(item.path!);
+            final files = await dir.list(recursive: true).where((entity) => entity is File).toList();
+            logBuffer.writeln('  扫描到文件数: ${files.length}');
+            
+            // 显示前几个文件作为示例
+            final sampleFiles = files.take(3).toList();
+            for (final file in sampleFiles) {
+              logBuffer.writeln('    - ${file.path}');
+            }
+            if (files.length > 3) {
+              logBuffer.writeln('    ... 还有 ${files.length - 3} 个文件');
+            }
+          } catch (e) {
+            logBuffer.writeln('  扫描目录时出错: $e');
+          }
+        } else {
+          logBuffer.writeln('  类型: 未知或不存在');
+        }
+        logBuffer.writeln('');
+      }
+      
+      logBuffer.writeln('项目项处理完成:');
+      logBuffer.writeln('  - 文件数: $totalFiles');
+      logBuffer.writeln('  - 目录数: $totalDirs');
+      logBuffer.writeln('');
+      
       final xmlContent = await XmlMerger.mergeXml(project);
-      logBuffer.writeln('XML 内容生成完成，大小: ${(xmlContent.length / 1024).toStringAsFixed(1)} KB');
+      logBuffer.writeln('XML 内容生成完成');
+      logBuffer.writeln('  - 内容大小: ${(xmlContent.length / 1024).toStringAsFixed(1)} KB');
+      logBuffer.writeln('  - 字符数: ${xmlContent.length}');
+      logBuffer.writeln('  - 行数: ${xmlContent.split('\n').length}');
+      logBuffer.writeln('');
       
       // 写入文件
+      logBuffer.writeln('=== 文件写入 ===');
       await outputFile.writeAsString(xmlContent, encoding: utf8);
-      logBuffer.writeln('文件写入完成');
+      logBuffer.writeln('文件写入完成: ${outputFile.path}');
+      
+      // 验证写入的文件
+      final writtenFile = File(outputFile.path);
+      if (await writtenFile.exists()) {
+        final fileSize = await writtenFile.length();
+        logBuffer.writeln('文件验证成功:');
+        logBuffer.writeln('  - 文件大小: ${(fileSize / 1024).toStringAsFixed(1)} KB');
+        logBuffer.writeln('  - 文件路径: ${writtenFile.path}');
+      } else {
+        logBuffer.writeln('警告: 文件写入后验证失败');
+      }
       
       final endTime = DateTime.now();
       final duration = endTime.difference(startTime);
       logBuffer.writeln('');
+      logBuffer.writeln('=== 生成完成 ===');
       logBuffer.writeln('结束时间: ${endTime.toString()}');
-      logBuffer.writeln('总耗时: ${duration.inMilliseconds} ms');
+      logBuffer.writeln('总耗时: ${duration.inMilliseconds} ms (${(duration.inMilliseconds / 1000).toStringAsFixed(2)} 秒)');
       logBuffer.writeln('生成状态: 成功');
+      logBuffer.writeln('处理统计:');
+      logBuffer.writeln('  - 启用项目项: ${enabledItems.length}');
+      logBuffer.writeln('  - 文件项: $totalFiles');
+      logBuffer.writeln('  - 目录项: $totalDirs');
+      logBuffer.writeln('  - 输出文件: ${outputFile.path}');
       
       // 保存日志到全局变量
       lastGenerateLog.value = logBuffer.toString();
@@ -500,14 +586,26 @@ class ProjectController extends GetxController {
         '文件生成成功!\n路径: ${outputFile.path}\n大小: ${(xmlContent.length / 1024).toStringAsFixed(1)} KB',
         duration: const Duration(seconds: 4),
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
       final endTime = DateTime.now();
       final duration = endTime.difference(startTime);
       logBuffer.writeln('');
+      logBuffer.writeln('=== 生成失败 ===');
       logBuffer.writeln('结束时间: ${endTime.toString()}');
-      logBuffer.writeln('总耗时: ${duration.inMilliseconds} ms');
+      logBuffer.writeln('总耗时: ${duration.inMilliseconds} ms (${(duration.inMilliseconds / 1000).toStringAsFixed(2)} 秒)');
       logBuffer.writeln('生成状态: 失败');
-      logBuffer.writeln('错误信息: $e');
+      logBuffer.writeln('');
+      logBuffer.writeln('错误详情:');
+      logBuffer.writeln('  错误类型: ${e.runtimeType}');
+      logBuffer.writeln('  错误信息: $e');
+      logBuffer.writeln('');
+      logBuffer.writeln('堆栈跟踪:');
+      logBuffer.writeln(stackTrace.toString());
+      logBuffer.writeln('');
+      logBuffer.writeln('调试信息:');
+      logBuffer.writeln('  - 项目名称: ${project.name}');
+      logBuffer.writeln('  - 输出路径: ${project.outputPath}');
+      logBuffer.writeln('  - 启用项目项数: ${enabledItems.length}');
       
       // 保存错误日志到全局变量
       lastGenerateLog.value = logBuffer.toString();
