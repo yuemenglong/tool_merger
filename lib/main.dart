@@ -520,16 +520,10 @@ class ToolMergerHomePage extends StatelessWidget {
                                       height: 28,
                                       child: ElevatedButton.icon(
                                         onPressed: () async {
-                                          final result = await showDialog<FilePickerResult>(
-                                            context: context,
-                                            builder: (context) => const AddFilesDialog(),
-                                          );
-                                          if (result != null) {
-                                            await controller.addFilesToProject(result);
-                                          }
+                                          await controller.addDirectoriesToProject();
                                         },
-                                        icon: const Icon(Icons.add, size: 12),
-                                        label: const Text('Add Files', style: TextStyle(fontSize: 10)),
+                                        icon: const Icon(Icons.folder_open, size: 12),
+                                        label: const Text('Add Dirs', style: TextStyle(fontSize: 10)),
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: Theme.of(context).colorScheme.secondary,
                                           foregroundColor: Theme.of(context).colorScheme.onSecondary,
@@ -589,7 +583,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                               flex: 2,
                                               child: Center(
                                                 child: Text(
-                                                  '文件名',
+                                                  '目录名',
                                                   style: TextStyle(
                                                     fontWeight: FontWeight.bold,
                                                     fontSize: 12,
@@ -602,7 +596,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                               flex: 4,
                                               child: Center(
                                                 child: Text(
-                                                  '文件路径',
+                                                  '目录路径',
                                                   style: TextStyle(
                                                     fontWeight: FontWeight.bold,
                                                     fontSize: 12,
@@ -629,7 +623,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                       ),
                                                       const SizedBox(height: 8),
                                                       Text(
-                                                        controller.selectedProject.value == null ? '请先选择项目' : '暂无文件',
+                                                        controller.selectedProject.value == null ? '请先选择项目' : '暂无目录',
                                                         style: TextStyle(
                                                           color: Colors.grey.shade600,
                                                           fontSize: 14,
@@ -638,7 +632,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                       ),
                                                       const SizedBox(height: 4),
                                                       Text(
-                                                        controller.selectedProject.value == null ? '从上方选择一个项目' : '点击 "Add Files" 或拖拽文件到此处',
+                                                        controller.selectedProject.value == null ? '从上方选择一个项目' : '点击 "Add Dirs" 或拖拽目录到此处',
                                                         style: TextStyle(
                                                           color: Colors.grey.shade500,
                                                           fontSize: 11,
@@ -695,7 +689,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                                                     child: Row(
                                                                       children: [
                                                                         Icon(
-                                                                          _getFileIcon(item.path ?? ''),
+                                                                          Icons.folder,
                                                                           size: 14,
                                                                           color: isSelected ? Theme.of(context).colorScheme.secondary : Colors.grey.shade600,
                                                                         ),

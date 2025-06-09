@@ -208,39 +208,41 @@ class ProjectController extends GetxController {
     }
   }
 
-  // 添加文件到项目
-  Future<void> addFilesToProject(FilePickerResult result) async {
+  // 添加目录到项目
+  Future<void> addDirectoriesToProject() async {
     if (selectedProject.value == null) return;
     
-    int addedCount = 0;
-    for (var file in result.files) {
-      if (file.path != null) {
-        final fileName = file.name;
-        final filePath = file.path!;
-        
-        // 检查是否已存在
-        final exists = currentItems.any((item) => item.path == filePath);
-        if (!exists) {
-          final newItem = ProjectItem(
-            name: fileName,
-            path: filePath,
-            enabled: true,
-            sortOrder: currentItems.length,
-          );
-          
-          currentItems.add(newItem);
-          selectedProject.value!.items = currentItems.toList();
-          selectedProject.value!.updateTime = DateTime.now();
-          addedCount++;
-        }
-      }
-    }
+    String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
     
-    await saveProjects();
-    if (addedCount > 0) {
-      Get.snackbar('成功', '已添加 $addedCount 个文件');
-    } else {
-      Get.snackbar('提示', '所选文件已存在于项目中');
+    if (selectedDirectory != null) {
+      final dirName = selectedDirectory.split(RegExp(r'[/\\]')).last;
+      
+      // 检查是否已存在
+      final exists = currentItems.any((item) => item.path == selectedDirectory);
+      if (!exists) {
+        final newItem = ProjectItem(
+          name: dirName,
+          path: selectedDirectory,
+          enabled: true,
+          sortOrder: currentItems.length,
+        );
+        
+        currentItems.add(newItem);
+        selectedProject.value!.items = currentItems.toList();
+        selectedProject.value!.updateTime = DateTime.now();
+        
+        await saveProjects();
+        
+        // 检查目录类型并给出建议
+        String message = '已添加目录: $dirName';
+        if (XmlMerger.shouldIgnorePath(selectedDirectory)) {
+          message += '\n提示: 此目录路径可能应该被忽略';
+        }
+        
+        Get.snackbar('成功', message, duration: const Duration(seconds: 3));
+      } else {
+        Get.snackbar('提示', '所选目录已存在于项目中');
+      }
     }
   }
 
@@ -321,7 +323,7 @@ class ProjectController extends GetxController {
     return currentItems.where((item) => item.enabled == true).length;
   }
 
-  // 处理拖拽文件
+  // 处理拖拽文件/目录
   Future<void> handleDroppedFiles(List<XFile> files) async {
     if (selectedProject.value == null) {
       Get.snackbar('提示', '请先选择一个项目');
@@ -329,32 +331,54 @@ class ProjectController extends GetxController {
     }
     
     int addedCount = 0;
+    int ignoredCount = 0;
+    
     for (var file in files) {
       final fileName = file.name;
       final filePath = file.path;
       
-      // 检查是否已存在
-      final exists = currentItems.any((item) => item.path == filePath);
-      if (!exists) {
-        final newItem = ProjectItem(
-          name: fileName,
-          path: filePath,
-          enabled: true,
-          sortOrder: currentItems.length,
-        );
-        
-        currentItems.add(newItem);
-        selectedProject.value!.items = currentItems.toList();
-        selectedProject.value!.updateTime = DateTime.now();
-        addedCount++;
+      // 检查是否为目录
+      final entity = FileSystemEntity.typeSync(filePath);
+      if (entity == FileSystemEntityType.directory) {
+        // 处理目录
+        final exists = currentItems.any((item) => item.path == filePath);
+        if (!exists) {
+          final newItem = ProjectItem(
+            name: fileName,
+            path: filePath,
+            enabled: true,
+            sortOrder: currentItems.length,
+          );
+          
+          currentItems.add(newItem);
+          selectedProject.value!.items = currentItems.toList();
+          selectedProject.value!.updateTime = DateTime.now();
+          addedCount++;
+          
+          // 检查目录类型并统计
+          if (XmlMerger.shouldIgnorePath(filePath)) {
+            ignoredCount++;
+          }
+        }
+      } else {
+        // 对于单个文件，提示用户应该拖拽目录
+        Get.snackbar('提示', '请拖拽目录而不是单个文件\n当前工具处理的是目录结构');
+        return;
       }
     }
     
     await saveProjects();
+    
+    // 构建提示消息
+    String message = '已添加 $addedCount 个目录';
+    if (ignoredCount > 0) {
+      message += '\n其中 $ignoredCount 个目录路径可能应该被忽略';
+    }
+    
     if (addedCount > 0) {
-      Get.snackbar('成功', '已添加 $addedCount 个文件');
+      Get.snackbar('成功', message, duration: const Duration(seconds: 3));
     } else {
-      Get.snackbar('提示', '所选文件已存在于项目中');
+      Get.snackbar('提示', '所选目录已存在于项目中');
     }
   }
 
