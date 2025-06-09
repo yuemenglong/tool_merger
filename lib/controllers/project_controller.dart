@@ -545,7 +545,10 @@ class ProjectController extends GetxController {
       logBuffer.writeln('  - 目录数: $totalDirs');
       logBuffer.writeln('');
       
-      final xmlContent = await XmlMerger.mergeXml(project);
+      final xmlContent = await XmlMerger.mergeXml(project, logCallback: (message) {
+        logBuffer.writeln(message);
+      });
+      logBuffer.writeln('');
       logBuffer.writeln('XML 内容生成完成');
       logBuffer.writeln('  - 内容大小: ${(xmlContent.length / 1024).toStringAsFixed(1)} KB');
       logBuffer.writeln('  - 字符数: ${xmlContent.length}');

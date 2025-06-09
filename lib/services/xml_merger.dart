@@ -111,8 +111,9 @@ class XmlMerger {
   /// 将项目合并为 XML 字符串
   /// 
   /// [project] 要合并的项目，其中 items 应该是目录路径列表
+  /// [logCallback] 可选的日志回调函数，用于接收处理过程中的日志信息
   /// 返回生成的 XML 内容字符串
-  static Future<String> mergeXml(Project project) async {
+  static Future<String> mergeXml(Project project, {Function(String)? logCallback}) async {
     if (project.items == null || project.items!.isEmpty) {
       throw Exception('项目中没有目录');
     }
@@ -122,11 +123,11 @@ class XmlMerger {
       throw Exception('没有启用的目录');
     }
 
-    return await _generateXmlContent(project, enabledItems);
+    return await _generateXmlContent(project, enabledItems, logCallback);
   }
 
   /// 生成 XML 内容（处理目录列表）
-  static Future<String> _generateXmlContent(Project project, List<ProjectItem> enabledItems) async {
+  static Future<String> _generateXmlContent(Project project, List<ProjectItem> enabledItems, Function(String)? logCallback) async {
     final buffer = StringBuffer();
     
     // XML 头部
@@ -135,6 +136,12 @@ class XmlMerger {
     
     // 使用对象来包装统计变量，以便在递归中正确传递引用
     final stats = _MergeStats();
+    
+    // 创建日志函数
+    void log(String message) {
+      print(message);
+      logCallback?.call(message);
+    }
     
     // 处理每个启用的项目项（可能是目录或文件）
     for (final item in enabledItems) {
@@ -146,7 +153,7 @@ class XmlMerger {
         // 检查是文件还是目录
         if (await itemFile.exists()) {
           // 处理单个文件（无视过滤规则，必然引入）
-          print('处理文件: ${item.name} (${itemPath})');
+          log('处理文件: ${item.name} (${itemPath})');
           
           String content;
           try {
@@ -160,7 +167,7 @@ class XmlMerger {
 
           // 检查文件是否为空
           if (content.isEmpty && await itemFile.length() > 0) {
-            print('警告: 文件 \'${item.name}\' 读取内容为空或失败，跳过XML写入。');
+            log('警告: 文件 \'${item.name}\' 读取内容为空或失败，跳过XML写入。');
             stats.skippedFilesIgnored++;
             continue;
           }
@@ -202,7 +209,7 @@ class XmlMerger {
           stats.mergedFiles++;
         } else if (await itemDirectory.exists()) {
           // 处理目录
-          print('处理目录: ${item.name} (${itemPath})');
+          log('处理目录: ${item.name} (${itemPath})');
           
           // 为每个根目录创建一个 <dir> 元素
           buffer.writeln('  <dir name="${_escapeXmlAttribute(item.name ?? '')}">');
@@ -213,22 +220,23 @@ class XmlMerger {
             buffer,
             2, // 缩进级别 2（在 project > dir 内）
             stats,
+            log,
           );
           
           buffer.writeln('  </dir>');
         } else {
-          print('警告: 路径不存在: ${itemPath}');
+          log('警告: 路径不存在: ${itemPath}');
           stats.skippedFilesIgnored++;
         }
       } catch (e) {
-        print('错误: 处理项目项失败 ${item.path}: $e');
+        log('错误: 处理项目项失败 ${item.path}: $e');
         stats.skippedFilesIgnored++;
       }
     }
     
     buffer.writeln('</project>');
     
-    print('生成完成: 合并文件 ${stats.mergedFiles} 个，跳过文件(非代码) ${stats.skippedFilesNonCode} 个，跳过文件(忽略) ${stats.skippedFilesIgnored} 个，跳过目录 ${stats.skippedDirs} 个');
+    log('生成完成: 合并文件 ${stats.mergedFiles} 个，跳过文件(非代码) ${stats.skippedFilesNonCode} 个，跳过文件(忽略) ${stats.skippedFilesIgnored} 个，跳过目录 ${stats.skippedDirs} 个');
     
     return buffer.toString();
   }
@@ -266,6 +274,7 @@ class XmlMerger {
     StringBuffer buffer,
     int indentLevel,
     _MergeStats stats,
+    Function(String) log,
   ) async {
     final List<Directory> subdirs = [];
     final List<File> files = [];
@@ -279,10 +288,10 @@ class XmlMerger {
         if (shouldIgnorePath(entityPath)) {
           if (entity is Directory) {
             stats.skippedDirs++;
-            print('${_indent(indentLevel)}跳过忽略目录: ${_getFileName(entityPath)}');
+            log('${_indent(indentLevel)}跳过忽略目录: ${_getFileName(entityPath)}');
           } else {
             stats.skippedFilesIgnored++;
-            print('${_indent(indentLevel)}跳过忽略文件: ${_getFileName(entityPath)}');
+            log('${_indent(indentLevel)}跳过忽略文件: ${_getFileName(entityPath)}');
           }
           continue;
         }
@@ -294,11 +303,11 @@ class XmlMerger {
           files.add(entity);
         } else {
           stats.skippedFilesIgnored++;
-          print('${_indent(indentLevel)}跳过非目录/常规文件: ${_getFileName(entityPath)}');
+          log('${_indent(indentLevel)}跳过非目录/常规文件: ${_getFileName(entityPath)}');
         }
       }
     } catch (e) {
-      print('错误: 迭代目录时发生异常 ${currentDir.path}: $e');
+      log('错误: 迭代目录时发生异常 ${currentDir.path}: $e');
       return;
     }
 
@@ -309,7 +318,7 @@ class XmlMerger {
     // 先处理子目录
     for (final subdir in subdirs) {
       final dirName = _getFileName(subdir.path);
-      print('${_indent(indentLevel)}处理目录: $dirName');
+      log('${_indent(indentLevel)}处理目录: $dirName');
       buffer.writeln('${_indent(indentLevel)}<dir name="${_escapeXmlAttribute(dirName)}">');
       
       await _processDirectoryRecursive(
@@ -317,6 +326,7 @@ class XmlMerger {
         buffer,
         indentLevel + 1,
         stats,
+        log,
       );
       
       buffer.writeln('${_indent(indentLevel)}</dir>');
@@ -329,7 +339,7 @@ class XmlMerger {
 
       // 检查是否为代码文件或特殊文件（与 C++ 版本逻辑一致）
       if (isCodeFile(file.path) || isSpecialFile(fileName)) {
-        print('${_indent(indentLevel)}处理文件: $fileName');
+        log('${_indent(indentLevel)}处理文件: $fileName');
         
         try {
           String content;
@@ -344,7 +354,7 @@ class XmlMerger {
 
           // 检查文件是否为空
           if (content.isEmpty && await file.length() > 0) {
-            print('${_indent(indentLevel + 1)}警告: 文件 \'$fileName\' 读取内容为空或失败，跳过XML写入。');
+            log('${_indent(indentLevel + 1)}警告: 文件 \'$fileName\' 读取内容为空或失败，跳过XML写入。');
             stats.skippedFilesIgnored++;
             continue;
           }
@@ -385,11 +395,11 @@ class XmlMerger {
           buffer.writeln('${_indent(indentLevel)}</file>');
           stats.mergedFiles++;
         } catch (e) {
-          print('错误: 读取文件失败 ${file.path}: $e');
+          log('错误: 读取文件失败 ${file.path}: $e');
           stats.skippedFilesIgnored++;
         }
       } else {
-        print('${_indent(indentLevel)}跳过文件(非代码/特殊文件): $fileName');
+        log('${_indent(indentLevel)}跳过文件(非代码/特殊文件): $fileName');
         stats.skippedFilesNonCode++;
       }
     }
