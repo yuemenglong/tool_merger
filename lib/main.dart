@@ -976,8 +976,8 @@ void _showLastGenerateLog(ProjectController controller) {
   Get.dialog(
     Dialog(
       child: Container(
-        width: 600,
-        height: 500,
+        width: MediaQuery.of(Get.context!).size.width * 0.9,
+        height: MediaQuery.of(Get.context!).size.height * 0.8,
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
