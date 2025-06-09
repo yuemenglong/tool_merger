@@ -62,7 +62,7 @@ class ToolMergerHomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ProjectController controller = Get.put(ProjectController());
-    
+
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
@@ -102,9 +102,9 @@ class ToolMergerHomePage extends StatelessWidget {
                             Text(
                               '项目列表',
                               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
                             ),
                             const Spacer(),
                             SizedBox(
@@ -122,16 +122,18 @@ class ToolMergerHomePage extends StatelessWidget {
                             SizedBox(
                               height: 32,
                               child: Obx(() => ElevatedButton.icon(
-                                onPressed: controller.selectedProject.value != null ? () {
-                                  // TODO: 实现生成逻辑
-                                } : null,
-                                icon: const Icon(Icons.build, size: 14),
-                                label: const Text('Generate', style: TextStyle(fontSize: 12)),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Theme.of(context).colorScheme.secondary,
-                                  foregroundColor: Theme.of(context).colorScheme.onSecondary,
-                                ),
-                              )),
+                                    onPressed: controller.selectedProject.value != null
+                                        ? () {
+                                            // TODO: 实现生成逻辑
+                                          }
+                                        : null,
+                                    icon: const Icon(Icons.build, size: 14),
+                                    label: const Text('Generate', style: TextStyle(fontSize: 12)),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Theme.of(context).colorScheme.secondary,
+                                      foregroundColor: Theme.of(context).colorScheme.onSecondary,
+                                    ),
+                                  )),
                             ),
                           ],
                         ),
@@ -208,123 +210,119 @@ class ToolMergerHomePage extends StatelessWidget {
                                       child: Obx(() {
                                         final filteredProjects = controller.filteredProjects;
                                         return filteredProjects.isEmpty
-                                          ? Center(
-                                              child: Column(
-                                                mainAxisAlignment: MainAxisAlignment.center,
-                                                children: [
-                                                  Icon(
-                                                    Icons.create_new_folder_outlined,
-                                                    size: 32,
-                                                    color: Colors.grey.shade400,
-                                                  ),
-                                                  const SizedBox(height: 8),
-                                                  Text(
-                                                    '暂无项目',
-                                                    style: TextStyle(
-                                                      color: Colors.grey.shade600,
-                                                      fontSize: 14,
-                                                      fontWeight: FontWeight.w500,
+                                            ? Center(
+                                                child: Column(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.create_new_folder_outlined,
+                                                      size: 32,
+                                                      color: Colors.grey.shade400,
                                                     ),
-                                                  ),
-                                                  const SizedBox(height: 4),
-                                                  Text(
-                                                    '点击右侧 "Create" 按钮创建',
-                                                    style: TextStyle(
-                                                      color: Colors.grey.shade500,
-                                                      fontSize: 11,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            )
-                                          : ListView.builder(
-                                            itemCount: filteredProjects.length,
-                                            itemBuilder: (context, index) {
-                                              final project = filteredProjects[index];
-                                              return Obx(() {
-                                                final isSelected = controller.selectedProject.value == project;
-                                                return Container(
-                                                  height: 36,
-                                                  decoration: BoxDecoration(
-                                                    color: isSelected 
-                                                      ? Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3)
-                                                      : index % 2 == 0 
-                                                        ? Colors.grey.shade50 
-                                                        : Colors.white,
-                                                    border: Border(
-                                                      bottom: BorderSide(color: Colors.grey.shade200),
-                                                    ),
-                                                  ),
-                                                  child: Material(
-                                                    color: Colors.transparent,
-                                                    child: InkWell(
-                                                      borderRadius: BorderRadius.circular(4),
-                                                      onTap: () => controller.selectProject(project),
-                                                      child: Padding(
-                                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                                        child: Row(
-                                                          children: [
-                                                            Expanded(
-                                                              flex: 2,
-                                                              child: Row(
-                                                                children: [
-                                                                  Icon(
-                                                                    Icons.folder,
-                                                                    color: isSelected 
-                                                                      ? Theme.of(context).colorScheme.primary
-                                                                      : Colors.grey.shade600,
-                                                                    size: 14,
-                                                                  ),
-                                                                  const SizedBox(width: 4),
-                                                                  Expanded(
-                                                                    child: Text(
-                                                                      project.name ?? '',
-                                                                      style: TextStyle(
-                                                                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                                                                        fontSize: 12,
-                                                                        color: isSelected 
-                                                                          ? Theme.of(context).colorScheme.primary
-                                                                          : null,
-                                                                      ),
-                                                                      overflow: TextOverflow.ellipsis,
-                                                                    ),
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                            ),
-                                                            Expanded(
-                                                              flex: 3,
-                                                              child: Center(
-                                                                child: Text(
-                                                                  _formatDateTime(project.createTime),
-                                                                  style: TextStyle(
-                                                                    color: Colors.grey.shade700,
-                                                                    fontSize: 10,
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                            ),
-                                                            Expanded(
-                                                              flex: 3,
-                                                              child: Center(
-                                                                child: Text(
-                                                                  _formatDateTime(project.updateTime),
-                                                                  style: TextStyle(
-                                                                    color: Colors.grey.shade700,
-                                                                    fontSize: 10,
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
+                                                    const SizedBox(height: 8),
+                                                    Text(
+                                                      '暂无项目',
+                                                      style: TextStyle(
+                                                        color: Colors.grey.shade600,
+                                                        fontSize: 14,
+                                                        fontWeight: FontWeight.w500,
                                                       ),
                                                     ),
-                                                  ),
-                                                );
-                                              });
-                                            },
-                                          );
+                                                    const SizedBox(height: 4),
+                                                    Text(
+                                                      '点击右侧 "Create" 按钮创建',
+                                                      style: TextStyle(
+                                                        color: Colors.grey.shade500,
+                                                        fontSize: 11,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              )
+                                            : ListView.builder(
+                                                itemCount: filteredProjects.length,
+                                                itemBuilder: (context, index) {
+                                                  final project = filteredProjects[index];
+                                                  return Obx(() {
+                                                    final isSelected = controller.selectedProject.value == project;
+                                                    return Container(
+                                                      height: 36,
+                                                      decoration: BoxDecoration(
+                                                        color: isSelected
+                                                            ? Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3)
+                                                            : index % 2 == 0
+                                                                ? Colors.grey.shade50
+                                                                : Colors.white,
+                                                        border: Border(
+                                                          bottom: BorderSide(color: Colors.grey.shade200),
+                                                        ),
+                                                      ),
+                                                      child: Material(
+                                                        color: Colors.transparent,
+                                                        child: InkWell(
+                                                          borderRadius: BorderRadius.circular(4),
+                                                          onTap: () => controller.selectProject(project),
+                                                          child: Padding(
+                                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                            child: Row(
+                                                              children: [
+                                                                Expanded(
+                                                                  flex: 2,
+                                                                  child: Row(
+                                                                    children: [
+                                                                      Icon(
+                                                                        Icons.folder,
+                                                                        color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey.shade600,
+                                                                        size: 14,
+                                                                      ),
+                                                                      const SizedBox(width: 4),
+                                                                      Expanded(
+                                                                        child: Text(
+                                                                          project.name ?? '',
+                                                                          style: TextStyle(
+                                                                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                                                            fontSize: 12,
+                                                                            color: isSelected ? Theme.of(context).colorScheme.primary : null,
+                                                                          ),
+                                                                          overflow: TextOverflow.ellipsis,
+                                                                        ),
+                                                                      ),
+                                                                    ],
+                                                                  ),
+                                                                ),
+                                                                Expanded(
+                                                                  flex: 3,
+                                                                  child: Center(
+                                                                    child: Text(
+                                                                      _formatDateTime(project.createTime),
+                                                                      style: TextStyle(
+                                                                        color: Colors.grey.shade700,
+                                                                        fontSize: 10,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                                Expanded(
+                                                                  flex: 3,
+                                                                  child: Center(
+                                                                    child: Text(
+                                                                      _formatDateTime(project.updateTime),
+                                                                      style: TextStyle(
+                                                                        color: Colors.grey.shade700,
+                                                                        fontSize: 10,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    );
+                                                  });
+                                                },
+                                              );
                                       }),
                                     ),
                                   ],
@@ -354,40 +352,46 @@ class ToolMergerHomePage extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 4),
                                   Obx(() => _buildActionButton(
-                                    icon: Icons.delete,
-                                    label: 'Delete',
-                                    onPressed: controller.selectedProject.value != null ? () async {
-                                      final result = await showDialog<bool>(
-                                        context: context,
-                                        builder: (context) => ConfirmDeleteDialog(
-                                          title: '删除项目',
-                                          content: '确定要删除项目 "${controller.selectedProject.value?.name}" 吗？',
-                                        ),
-                                      );
-                                      if (result == true && controller.selectedProject.value != null) {
-                                        await controller.deleteProject(controller.selectedProject.value!);
-                                      }
-                                    } : null,
-                                    color: Colors.red,
-                                  )),
+                                        icon: Icons.delete,
+                                        label: 'Delete',
+                                        onPressed: controller.selectedProject.value != null
+                                            ? () async {
+                                                final result = await showDialog<bool>(
+                                                  context: context,
+                                                  builder: (context) => ConfirmDeleteDialog(
+                                                    title: '删除项目',
+                                                    content: '确定要删除项目 "${controller.selectedProject.value?.name}" 吗？',
+                                                  ),
+                                                );
+                                                if (result == true && controller.selectedProject.value != null) {
+                                                  await controller.deleteProject(controller.selectedProject.value!);
+                                                }
+                                              }
+                                            : null,
+                                        color: Colors.red,
+                                      )),
                                   const SizedBox(height: 4),
                                   Obx(() => _buildActionButton(
-                                    icon: Icons.keyboard_arrow_up,
-                                    label: 'Up',
-                                    onPressed: controller.selectedProject.value != null ? () async {
-                                      await controller.moveProjectUp(controller.selectedProject.value!);
-                                    } : null,
-                                    color: Colors.blue,
-                                  )),
+                                        icon: Icons.keyboard_arrow_up,
+                                        label: 'Up',
+                                        onPressed: controller.selectedProject.value != null
+                                            ? () async {
+                                                await controller.moveProjectUp(controller.selectedProject.value!);
+                                              }
+                                            : null,
+                                        color: Colors.blue,
+                                      )),
                                   const SizedBox(height: 4),
                                   Obx(() => _buildActionButton(
-                                    icon: Icons.keyboard_arrow_down,
-                                    label: 'Down',
-                                    onPressed: controller.selectedProject.value != null ? () async {
-                                      await controller.moveProjectDown(controller.selectedProject.value!);
-                                    } : null,
-                                    color: Colors.blue,
-                                  )),
+                                        icon: Icons.keyboard_arrow_down,
+                                        label: 'Down',
+                                        onPressed: controller.selectedProject.value != null
+                                            ? () async {
+                                                await controller.moveProjectDown(controller.selectedProject.value!);
+                                              }
+                                            : null,
+                                        color: Colors.blue,
+                                      )),
                                 ],
                               ),
                             ),
@@ -425,25 +429,27 @@ class ToolMergerHomePage extends StatelessWidget {
                               child: SizedBox(
                                 height: 28,
                                 child: Obx(() => TextField(
-                                  controller: TextEditingController(text: controller.outputPath.value),
-                                  style: const TextStyle(fontSize: 11),
-                                  decoration: const InputDecoration(
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                                  ),
-                                  readOnly: true,
-                                )),
+                                      controller: TextEditingController(text: controller.outputPath.value),
+                                      style: const TextStyle(fontSize: 11),
+                                      decoration: const InputDecoration(
+                                        contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                                      ),
+                                      readOnly: true,
+                                    )),
                               ),
                             ),
                             const SizedBox(width: 8),
                             SizedBox(
                               height: 28,
                               child: Obx(() => ElevatedButton.icon(
-                                onPressed: controller.selectedProject.value != null ? () async {
-                                  await controller.selectOutputPath();
-                                } : null,
-                                icon: const Icon(Icons.folder_open, size: 12),
-                                label: const Text('Select', style: TextStyle(fontSize: 10)),
-                              )),
+                                    onPressed: controller.selectedProject.value != null
+                                        ? () async {
+                                            await controller.selectOutputPath();
+                                          }
+                                        : null,
+                                    icon: const Icon(Icons.folder_open, size: 12),
+                                    label: const Text('Select', style: TextStyle(fontSize: 10)),
+                                  )),
                             ),
                           ],
                         ),
@@ -477,9 +483,9 @@ class ToolMergerHomePage extends StatelessWidget {
                             Text(
                               '项目文件',
                               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.secondary,
-                              ),
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(context).colorScheme.secondary,
+                                  ),
                             ),
                             const Spacer(),
                             Obx(() {
@@ -554,199 +560,190 @@ class ToolMergerHomePage extends StatelessWidget {
                                   ),
                                   child: Column(
                                     children: [
-                                    // 表头
-                                    Container(
-                                      height: 32,
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(context).colorScheme.secondaryContainer,
-                                        borderRadius: const BorderRadius.only(
-                                          topLeft: Radius.circular(6),
-                                          topRight: Radius.circular(6),
+                                      // 表头
+                                      Container(
+                                        height: 32,
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(context).colorScheme.secondaryContainer,
+                                          borderRadius: const BorderRadius.only(
+                                            topLeft: Radius.circular(6),
+                                            topRight: Radius.circular(6),
+                                          ),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Expanded(
+                                              flex: 1,
+                                              child: Center(
+                                                child: Text(
+                                                  '启用',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 12,
+                                                    color: Theme.of(context).colorScheme.onSecondaryContainer,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            Expanded(
+                                              flex: 2,
+                                              child: Center(
+                                                child: Text(
+                                                  '文件名',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 12,
+                                                    color: Theme.of(context).colorScheme.onSecondaryContainer,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            Expanded(
+                                              flex: 4,
+                                              child: Center(
+                                                child: Text(
+                                                  '文件路径',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 12,
+                                                    color: Theme.of(context).colorScheme.onSecondaryContainer,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                      child: Row(
-                                        children: [
-                                          Expanded(
-                                            flex: 1,
-                                            child: Center(
-                                              child: Text(
-                                                '启用',
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 12,
-                                                  color: Theme.of(context).colorScheme.onSecondaryContainer,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          Expanded(
-                                            flex: 2,
-                                            child: Center(
-                                              child: Text(
-                                                '文件名',
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 12,
-                                                  color: Theme.of(context).colorScheme.onSecondaryContainer,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          Expanded(
-                                            flex: 4,
-                                            child: Center(
-                                              child: Text(
-                                                '文件路径',
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 12,
-                                                  color: Theme.of(context).colorScheme.onSecondaryContainer,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    // 项目项列表
-                                    Expanded(
-                                      child: Obx(() {
-                                        return controller.currentItems.isEmpty
-                                          ? Center(
-                                              child: Column(
-                                                mainAxisAlignment: MainAxisAlignment.center,
-                                                children: [
-                                                  Icon(
-                                                    controller.selectedProject.value == null 
-                                                      ? Icons.folder_outlined
-                                                      : Icons.note_add_outlined,
-                                                    size: 32,
-                                                    color: Colors.grey.shade400,
-                                                  ),
-                                                  const SizedBox(height: 8),
-                                                  Text(
-                                                    controller.selectedProject.value == null 
-                                                      ? '请先选择项目'
-                                                      : '暂无文件',
-                                                    style: TextStyle(
-                                                      color: Colors.grey.shade600,
-                                                      fontSize: 14,
-                                                      fontWeight: FontWeight.w500,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(height: 4),
-                                                  Text(
-                                                    controller.selectedProject.value == null 
-                                                      ? '从上方选择一个项目'
-                                                      : '点击 "Add Files" 或拖拽文件到此处',
-                                                    style: TextStyle(
-                                                      color: Colors.grey.shade500,
-                                                      fontSize: 11,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            )
-                                          : ListView.builder(
-                                              itemCount: controller.currentItems.length,
-                                              itemBuilder: (context, index) {
-                                                final item = controller.currentItems[index];
-                                                return Obx(() {
-                                                  final isSelected = controller.selectedItem.value == item;
-                                                  return Container(
-                                                    height: 36,
-                                                    decoration: BoxDecoration(
-                                                      color: isSelected 
-                                                        ? Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.3)
-                                                        : index % 2 == 0 
-                                                          ? Colors.grey.shade50 
-                                                          : Colors.white,
-                                                      border: Border(
-                                                        bottom: BorderSide(color: Colors.grey.shade200),
+                                      // 项目项列表
+                                      Expanded(
+                                        child: Obx(() {
+                                          return controller.currentItems.isEmpty
+                                              ? Center(
+                                                  child: Column(
+                                                    mainAxisAlignment: MainAxisAlignment.center,
+                                                    children: [
+                                                      Icon(
+                                                        controller.selectedProject.value == null ? Icons.folder_outlined : Icons.note_add_outlined,
+                                                        size: 32,
+                                                        color: Colors.grey.shade400,
                                                       ),
-                                                    ),
-                                                    child: Material(
-                                                      color: Colors.transparent,
-                                                      child: InkWell(
-                                                        borderRadius: BorderRadius.circular(4),
-                                                        onTap: () => controller.selectItem(item),
-                                                        child: Padding(
-                                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                                          child: Row(
-                                                            children: [
-                                                              Expanded(
-                                                                flex: 1,
-                                                                child: Center(
-                                                                  child: Transform.scale(
-                                                                    scale: 0.8,
-                                                                    child: Checkbox(
-                                                                      value: item.enabled ?? false,
-                                                                      onChanged: (value) async {
-                                                                        await controller.toggleItemEnabled(item);
-                                                                      },
-                                                                      activeColor: Theme.of(context).colorScheme.secondary,
-                                                                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                      const SizedBox(height: 8),
+                                                      Text(
+                                                        controller.selectedProject.value == null ? '请先选择项目' : '暂无文件',
+                                                        style: TextStyle(
+                                                          color: Colors.grey.shade600,
+                                                          fontSize: 14,
+                                                          fontWeight: FontWeight.w500,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 4),
+                                                      Text(
+                                                        controller.selectedProject.value == null ? '从上方选择一个项目' : '点击 "Add Files" 或拖拽文件到此处',
+                                                        style: TextStyle(
+                                                          color: Colors.grey.shade500,
+                                                          fontSize: 11,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                )
+                                              : ListView.builder(
+                                                  itemCount: controller.currentItems.length,
+                                                  itemBuilder: (context, index) {
+                                                    final item = controller.currentItems[index];
+                                                    return Obx(() {
+                                                      final isSelected = controller.selectedItem.value == item;
+                                                      return Container(
+                                                        height: 36,
+                                                        decoration: BoxDecoration(
+                                                          color: isSelected
+                                                              ? Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.3)
+                                                              : index % 2 == 0
+                                                                  ? Colors.grey.shade50
+                                                                  : Colors.white,
+                                                          border: Border(
+                                                            bottom: BorderSide(color: Colors.grey.shade200),
+                                                          ),
+                                                        ),
+                                                        child: Material(
+                                                          color: Colors.transparent,
+                                                          child: InkWell(
+                                                            borderRadius: BorderRadius.circular(4),
+                                                            onTap: () => controller.selectItem(item),
+                                                            child: Padding(
+                                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                              child: Row(
+                                                                children: [
+                                                                  Expanded(
+                                                                    flex: 1,
+                                                                    child: Center(
+                                                                      child: Transform.scale(
+                                                                        scale: 0.8,
+                                                                        child: Checkbox(
+                                                                          value: item.enabled ?? false,
+                                                                          onChanged: (value) async {
+                                                                            await controller.toggleItemEnabled(item);
+                                                                          },
+                                                                          activeColor: Theme.of(context).colorScheme.secondary,
+                                                                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                                        ),
+                                                                      ),
                                                                     ),
                                                                   ),
-                                                                ),
-                                                              ),
-                                                              Expanded(
-                                                                flex: 2,
-                                                                child: Row(
-                                                                  children: [
-                                                                    Icon(
-                                                                      _getFileIcon(item.path ?? ''),
-                                                                      size: 14,
-                                                                      color: isSelected 
-                                                                        ? Theme.of(context).colorScheme.secondary
-                                                                        : Colors.grey.shade600,
+                                                                  Expanded(
+                                                                    flex: 2,
+                                                                    child: Row(
+                                                                      children: [
+                                                                        Icon(
+                                                                          _getFileIcon(item.path ?? ''),
+                                                                          size: 14,
+                                                                          color: isSelected ? Theme.of(context).colorScheme.secondary : Colors.grey.shade600,
+                                                                        ),
+                                                                        const SizedBox(width: 4),
+                                                                        Expanded(
+                                                                          child: Text(
+                                                                            _getFileName(item.path ?? ''),
+                                                                            style: TextStyle(
+                                                                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                                                              fontSize: 12,
+                                                                              color: isSelected ? Theme.of(context).colorScheme.secondary : null,
+                                                                            ),
+                                                                            overflow: TextOverflow.ellipsis,
+                                                                          ),
+                                                                        ),
+                                                                      ],
                                                                     ),
-                                                                    const SizedBox(width: 4),
-                                                                    Expanded(
+                                                                  ),
+                                                                  Expanded(
+                                                                    flex: 4,
+                                                                    child: Padding(
+                                                                      padding: const EdgeInsets.only(left: 4),
                                                                       child: Text(
-                                                                        _getFileName(item.path ?? ''),
+                                                                        item.path ?? '',
                                                                         style: TextStyle(
-                                                                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                                                                          fontSize: 12,
-                                                                          color: isSelected 
-                                                                            ? Theme.of(context).colorScheme.secondary
-                                                                            : null,
+                                                                          color: Colors.grey.shade700,
+                                                                          fontSize: 10,
                                                                         ),
                                                                         overflow: TextOverflow.ellipsis,
                                                                       ),
                                                                     ),
-                                                                  ],
-                                                                ),
-                                                              ),
-                                                              Expanded(
-                                                                flex: 4,
-                                                                child: Padding(
-                                                                  padding: const EdgeInsets.only(left: 4),
-                                                                  child: Text(
-                                                                    item.path ?? '',
-                                                                    style: TextStyle(
-                                                                      color: Colors.grey.shade700,
-                                                                      fontSize: 10,
-                                                                    ),
-                                                                    overflow: TextOverflow.ellipsis,
                                                                   ),
-                                                                ),
+                                                                ],
                                                               ),
-                                                            ],
+                                                            ),
                                                           ),
                                                         ),
-                                                      ),
-                                                    ),
-                                                  );
-                                                });
-                                              },
-                                            );
-                                      }),
-                                    ),
-                                  ],
+                                                      );
+                                                    });
+                                                  },
+                                                );
+                                        }),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
+                            ), // <-- 修正点：闭合第一个Expanded，并用逗号分隔
                             const SizedBox(width: 8),
                             // 右侧按钮列
                             SizedBox(
@@ -755,40 +752,46 @@ class ToolMergerHomePage extends StatelessWidget {
                                 mainAxisAlignment: MainAxisAlignment.start,
                                 children: [
                                   Obx(() => _buildActionButton(
-                                    icon: Icons.delete,
-                                    label: 'Delete',
-                                    onPressed: controller.selectedProject.value != null && controller.selectedItem.value != null ? () async {
-                                      final result = await showDialog<bool>(
-                                        context: context,
-                                        builder: (context) => ConfirmDeleteDialog(
-                                          title: '删除项目项',
-                                          content: '确定要删除项目项 "${controller.selectedItem.value?.name}" 吗？',
-                                        ),
-                                      );
-                                      if (result == true && controller.selectedItem.value != null) {
-                                        await controller.deleteItem(controller.selectedItem.value!);
-                                      }
-                                    } : null,
-                                    color: Colors.red,
-                                  )),
+                                        icon: Icons.delete,
+                                        label: 'Delete',
+                                        onPressed: controller.selectedProject.value != null && controller.selectedItem.value != null
+                                            ? () async {
+                                                final result = await showDialog<bool>(
+                                                  context: context,
+                                                  builder: (context) => ConfirmDeleteDialog(
+                                                    title: '删除项目项',
+                                                    content: '确定要删除项目项 "${controller.selectedItem.value?.name}" 吗？',
+                                                  ),
+                                                );
+                                                if (result == true && controller.selectedItem.value != null) {
+                                                  await controller.deleteItem(controller.selectedItem.value!);
+                                                }
+                                              }
+                                            : null,
+                                        color: Colors.red,
+                                      )),
                                   const SizedBox(height: 4),
                                   Obx(() => _buildActionButton(
-                                    icon: Icons.keyboard_arrow_up,
-                                    label: 'Up',
-                                    onPressed: controller.selectedProject.value != null && controller.selectedItem.value != null ? () async {
-                                      await controller.moveItemUp(controller.selectedItem.value!);
-                                    } : null,
-                                    color: Colors.blue,
-                                  )),
+                                        icon: Icons.keyboard_arrow_up,
+                                        label: 'Up',
+                                        onPressed: controller.selectedProject.value != null && controller.selectedItem.value != null
+                                            ? () async {
+                                                await controller.moveItemUp(controller.selectedItem.value!);
+                                              }
+                                            : null,
+                                        color: Colors.blue,
+                                      )),
                                   const SizedBox(height: 4),
                                   Obx(() => _buildActionButton(
-                                    icon: Icons.keyboard_arrow_down,
-                                    label: 'Down',
-                                    onPressed: controller.selectedProject.value != null && controller.selectedItem.value != null ? () async {
-                                      await controller.moveItemDown(controller.selectedItem.value!);
-                                    } : null,
-                                    color: Colors.blue,
-                                  )),
+                                        icon: Icons.keyboard_arrow_down,
+                                        label: 'Down',
+                                        onPressed: controller.selectedProject.value != null && controller.selectedItem.value != null
+                                            ? () async {
+                                                await controller.moveItemDown(controller.selectedItem.value!);
+                                              }
+                                            : null,
+                                        color: Colors.blue,
+                                      )),
                                 ],
                               ),
                             ),
@@ -805,69 +808,69 @@ class ToolMergerHomePage extends StatelessWidget {
       ),
       bottomNavigationBar: Obx(() {
         return controller.selectedProject.value != null
-          ? Container(
-              height: 32,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceVariant,
-                border: Border(
-                  top: BorderSide(
-                    color: Colors.grey.shade300,
-                    width: 1,
+            ? Container(
+                height: 32,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceVariant,
+                  border: Border(
+                    top: BorderSide(
+                      color: Colors.grey.shade300,
+                      width: 1,
+                    ),
                   ),
                 ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    size: 12,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '当前: ${controller.selectedProject.value?.name}',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w500,
-                      fontSize: 11,
-                    ),
-                  ),
-                  const Spacer(),
-                  if (controller.currentItems.isNotEmpty) ...[
+                child: Row(
+                  children: [
                     Icon(
-                      Icons.folder,
+                      Icons.info_outline,
                       size: 12,
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
-                    const SizedBox(width: 2),
+                    const SizedBox(width: 4),
                     Text(
-                      '${controller.currentItems.length}',
+                      '当前: ${controller.selectedProject.value?.name}',
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        fontSize: 10,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Icon(
-                      Icons.check_circle,
-                      size: 12,
-                      color: Colors.green.shade600,
-                    ),
-                    const SizedBox(width: 2),
-                    Text(
-                      '${controller.enabledItemsCount}',
-                      style: TextStyle(
-                        color: Colors.green.shade600,
-                        fontSize: 10,
                         fontWeight: FontWeight.w500,
+                        fontSize: 11,
                       ),
                     ),
+                    const Spacer(),
+                    if (controller.currentItems.isNotEmpty) ...[
+                      Icon(
+                        Icons.folder,
+                        size: 12,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 2),
+                      Text(
+                        '${controller.currentItems.length}',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontSize: 10,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        Icons.check_circle,
+                        size: 12,
+                        color: Colors.green.shade600,
+                      ),
+                      const SizedBox(width: 2),
+                      Text(
+                        '${controller.enabledItemsCount}',
+                        style: TextStyle(
+                          color: Colors.green.shade600,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ],
-                ],
-              ),
-            )
-          : const SizedBox.shrink();
+                ),
+              )
+            : const SizedBox.shrink();
       }),
     );
   }
@@ -930,6 +933,6 @@ class ToolMergerHomePage extends StatelessWidget {
   String _formatDateTime(DateTime? dateTime) {
     if (dateTime == null) return '';
     return '${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')} '
-           '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+        '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 }
