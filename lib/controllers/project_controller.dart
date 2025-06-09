@@ -246,6 +246,51 @@ class ProjectController extends GetxController {
     }
   }
 
+  // 添加文件到项目
+  Future<void> addFilesToProject() async {
+    if (selectedProject.value == null) return;
+    
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      allowMultiple: true,
+      type: FileType.any,
+    );
+    
+    if (result != null) {
+      int addedCount = 0;
+      
+      for (var file in result.files) {
+        if (file.path != null) {
+          final fileName = file.name;
+          final filePath = file.path!;
+          
+          // 检查是否已存在
+          final exists = currentItems.any((item) => item.path == filePath);
+          if (!exists) {
+            final newItem = ProjectItem(
+              name: fileName,
+              path: filePath,
+              enabled: true,
+              sortOrder: currentItems.length,
+            );
+            
+            currentItems.add(newItem);
+            selectedProject.value!.items = currentItems.toList();
+            selectedProject.value!.updateTime = DateTime.now();
+            addedCount++;
+          }
+        }
+      }
+      
+      await saveProjects();
+      
+      if (addedCount > 0) {
+        Get.snackbar('成功', '已添加 $addedCount 个文件', duration: const Duration(seconds: 3));
+      } else {
+        Get.snackbar('提示', '所选文件已存在于项目中');
+      }
+    }
+  }
+
   // 选择项目项
   void selectItem(ProjectItem item) {
     selectedItem.value = item;
@@ -383,19 +428,19 @@ class ProjectController extends GetxController {
   }
 
   // 生成项目合并文件
-  Future<void> generateProject() async {
-    if (selectedProject.value == null) {
+  Future<void> generateProject([Project? targetProject]) async {
+    final project = targetProject ?? selectedProject.value;
+    if (project == null) {
       Get.snackbar('错误', '请先选择一个项目');
       return;
     }
-
-    final project = selectedProject.value!;
     if (project.outputPath == null || project.outputPath!.isEmpty) {
       Get.snackbar('错误', '请先设置输出路径');
       return;
     }
 
-    final enabledItems = currentItems.where((item) => item.enabled == true).toList();
+    final projectItems = project.items ?? [];
+    final enabledItems = projectItems.where((item) => item.enabled == true).toList();
     if (enabledItems.isEmpty) {
       Get.snackbar('错误', '没有启用的文件');
       return;

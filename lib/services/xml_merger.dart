@@ -136,21 +136,80 @@ class XmlMerger {
     // 使用对象来包装统计变量，以便在递归中正确传递引用
     final stats = _MergeStats();
     
-    // 处理每个启用的目录
+    // 处理每个启用的项目项（可能是目录或文件）
     for (final item in enabledItems) {
       try {
-        final dirPath = item.path ?? '';
-        final directory = Directory(dirPath);
+        final itemPath = item.path ?? '';
+        final itemFile = File(itemPath);
+        final itemDirectory = Directory(itemPath);
         
-        if (await directory.exists()) {
-          print('处理目录: ${item.name} (${dirPath})');
+        // 检查是文件还是目录
+        if (await itemFile.exists()) {
+          // 处理单个文件（无视过滤规则，必然引入）
+          print('处理文件: ${item.name} (${itemPath})');
+          
+          String content;
+          try {
+            // 尝试以 UTF-8 读取
+            content = await itemFile.readAsString(encoding: utf8);
+          } catch (e) {
+            // 如果 UTF-8 失败，尝试系统默认编码
+            final bytes = await itemFile.readAsBytes();
+            content = String.fromCharCodes(bytes);
+          }
+
+          // 检查文件是否为空
+          if (content.isEmpty && await itemFile.length() > 0) {
+            print('警告: 文件 \'${item.name}\' 读取内容为空或失败，跳过XML写入。');
+            stats.skippedFilesIgnored++;
+            continue;
+          }
+
+          buffer.writeln('  <file name="${_escapeXmlAttribute(item.name ?? '')}" path="${_escapeXmlAttribute(itemPath)}">');
+          buffer.writeln('    <![CDATA[');
+
+          // 处理内容
+          if (content.isNotEmpty) {
+            // 移除可能的 BOM
+            if (content.startsWith('\uFEFF')) {
+              content = content.substring(1);
+            }
+
+            // 转义 CDATA 内容
+            content = _escapeCDataContent(content);
+
+            // 按行处理内容，添加适当的缩进
+            final lines = content.split('\n');
+            for (int i = 0; i < lines.length; i++) {
+              final line = lines[i];
+              // 移除行尾的回车符
+              final cleanLine = line.endsWith('\r') ? line.substring(0, line.length - 1) : line;
+              
+              if (i == 0) {
+                buffer.writeln(); // 在第一行前添加换行
+              }
+              buffer.write('      $cleanLine');
+              if (i < lines.length - 1) {
+                buffer.writeln();
+              }
+            }
+            buffer.writeln(); // 在内容后添加换行
+            buffer.write('    ');
+          }
+
+          buffer.writeln(']]>');
+          buffer.writeln('  </file>');
+          stats.mergedFiles++;
+        } else if (await itemDirectory.exists()) {
+          // 处理目录
+          print('处理目录: ${item.name} (${itemPath})');
           
           // 为每个根目录创建一个 <dir> 元素
           buffer.writeln('  <dir name="${_escapeXmlAttribute(item.name ?? '')}">');
           
           // 递归处理目录内容
           await _processDirectoryRecursive(
-            directory,
+            itemDirectory,
             buffer,
             2, // 缩进级别 2（在 project > dir 内）
             stats,
@@ -158,12 +217,12 @@ class XmlMerger {
           
           buffer.writeln('  </dir>');
         } else {
-          print('警告: 目录不存在: ${dirPath}');
-          stats.skippedDirs++;
+          print('警告: 路径不存在: ${itemPath}');
+          stats.skippedFilesIgnored++;
         }
       } catch (e) {
-        print('错误: 处理目录失败 ${item.path}: $e');
-        stats.skippedDirs++;
+        print('错误: 处理项目项失败 ${item.path}: $e');
+        stats.skippedFilesIgnored++;
       }
     }
     

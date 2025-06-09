@@ -118,23 +118,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            SizedBox(
-                              height: 32,
-                              child: Obx(() => ElevatedButton.icon(
-                                    onPressed: controller.selectedProject.value != null
-                                        ? () async {
-                                            await controller.generateProject();
-                                          }
-                                        : null,
-                                    icon: const Icon(Icons.build, size: 14),
-                                    label: const Text('Generate', style: TextStyle(fontSize: 12)),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Theme.of(context).colorScheme.secondary,
-                                      foregroundColor: Theme.of(context).colorScheme.onSecondary,
-                                    ),
-                                  )),
-                            ),
+
                           ],
                         ),
                       ),
@@ -194,6 +178,19 @@ class ToolMergerHomePage extends StatelessWidget {
                                             child: Center(
                                               child: Text(
                                                 '更新时间',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 12,
+                                                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          Expanded(
+                                            flex: 2,
+                                            child: Center(
+                                              child: Text(
+                                                '操作',
                                                 style: TextStyle(
                                                   fontWeight: FontWeight.bold,
                                                   fontSize: 12,
@@ -310,6 +307,27 @@ class ToolMergerHomePage extends StatelessWidget {
                                                                       style: TextStyle(
                                                                         color: Colors.grey.shade700,
                                                                         fontSize: 10,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                                Expanded(
+                                                                  flex: 2,
+                                                                  child: Center(
+                                                                    child: SizedBox(
+                                                                      height: 24,
+                                                                      child: ElevatedButton.icon(
+                                                                        onPressed: () async {
+                                                                          await controller.generateProject(project);
+                                                                        },
+                                                                        icon: const Icon(Icons.build, size: 12),
+                                                                        label: const Text('Generate', style: TextStyle(fontSize: 10)),
+                                                                        style: ElevatedButton.styleFrom(
+                                                                          backgroundColor: Theme.of(context).colorScheme.secondary,
+                                                                          foregroundColor: Theme.of(context).colorScheme.onSecondary,
+                                                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                                          minimumSize: const Size(0, 24),
+                                                                        ),
                                                                       ),
                                                                     ),
                                                                   ),
