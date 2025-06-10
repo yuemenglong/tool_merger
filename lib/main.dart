@@ -1178,12 +1178,12 @@ class ToolMergerHomePage extends StatelessWidget {
                   children: [
                     Text(
                       '生成时间: ${_formatDateTime(status.generateTime)}',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                     ),
-                    Text('项目名称: ${status.projectName ?? "未知"}'),
-                    Text('文件总数: ${status.fileStatuses?.length ?? 0}'),
+                    Text('项目名称: ${status.projectName ?? "未知"}', style: const TextStyle(fontSize: 14)),
+                    Text('文件总数: ${status.fileStatuses?.length ?? 0}', style: const TextStyle(fontSize: 14)),
                     if (commonParent != null)
-                      Text('公共目录: $commonParent', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                      Text('公共目录: $commonParent', style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
                   ],
                 ),
               ),
@@ -1191,7 +1191,7 @@ class ToolMergerHomePage extends StatelessWidget {
               // 文件列表表格
               const Text(
                 '文件详情:',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
               const SizedBox(height: 8),
               Expanded(
@@ -1220,7 +1220,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                 alignment: Alignment.center,
                                 child: const Text(
                                   '文件路径',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                                 ),
                               ),
                             ),
@@ -1230,7 +1230,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                 alignment: Alignment.center,
                                 child: const Text(
                                   '后缀',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                                 ),
                               ),
                             ),
@@ -1240,7 +1240,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                 alignment: Alignment.center,
                                 child: const Text(
                                   '行数',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                                 ),
                               ),
                             ),
@@ -1250,7 +1250,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                 alignment: Alignment.center,
                                 child: const Text(
                                   '文件大小',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                                 ),
                               ),
                             ),
@@ -1283,7 +1283,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                         message: fileStatus.fullPath ?? '',
                                         child: Text(
                                           displayPath,
-                                          style: const TextStyle(fontSize: 12),
+                                          style: const TextStyle(fontSize: 13),
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
@@ -1295,7 +1295,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                       alignment: Alignment.center,
                                       child: Text(
                                         fileStatus.extension ?? '',
-                                        style: const TextStyle(fontSize: 12),
+                                        style: const TextStyle(fontSize: 13),
                                       ),
                                     ),
                                   ),
@@ -1305,7 +1305,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                       alignment: Alignment.center,
                                       child: Text(
                                         '${fileStatus.lineCount ?? 0}',
-                                        style: const TextStyle(fontSize: 12),
+                                        style: const TextStyle(fontSize: 13),
                                       ),
                                     ),
                                   ),
@@ -1315,7 +1315,7 @@ class ToolMergerHomePage extends StatelessWidget {
                                       alignment: Alignment.center,
                                       child: Text(
                                         _formatFileSize(fileStatus.fileSize ?? 0),
-                                        style: const TextStyle(fontSize: 12),
+                                        style: const TextStyle(fontSize: 13),
                                       ),
                                     ),
                                   ),

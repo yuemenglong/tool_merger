@@ -225,6 +225,16 @@ class XmlMerger {
           stats.mergedFiles++;
         } else if (await itemDirectory.exists()) {
           // 处理目录
+          log('检查目录: ${item.name} (${itemPath})');
+          
+          // 检查目录是否只包含空文件夹
+          final isOnlyEmptyFolders = await _isDirectoryOnlyEmptyFolders(itemDirectory, excludePaths);
+          if (isOnlyEmptyFolders) {
+            log('跳过空目录: ${item.name} (只包含空文件夹)');
+            stats.skippedDirs++;
+            continue;
+          }
+          
           log('处理目录: ${item.name} (${itemPath})');
           
           // 为每个根目录创建一个 <dir> 元素
@@ -283,6 +293,46 @@ class XmlMerger {
       return buffer.toString();
     }
     return content;
+  }
+
+  /// 检查目录是否只包含空文件夹（递归检查）
+  static Future<bool> _isDirectoryOnlyEmptyFolders(
+    Directory dir,
+    Set<String> excludePaths,
+  ) async {
+    try {
+      await for (final entity in dir.list()) {
+        final entityPath = entity.path;
+
+        // 跳过排除的路径
+        if (excludePaths.contains(entityPath)) {
+          continue;
+        }
+
+        // 跳过应该被忽略的路径
+        if (shouldIgnorePath(entityPath)) {
+          continue;
+        }
+
+        if (entity is File) {
+          // 如果找到任何文件，检查是否为代码文件或特殊文件
+          final fileName = _getFileName(entity.path);
+          if (isCodeFile(entity.path) || isSpecialFile(fileName)) {
+            return false; // 找到了有效文件，不是空文件夹
+          }
+        } else if (entity is Directory) {
+          // 递归检查子目录
+          final hasValidContent = await _isDirectoryOnlyEmptyFolders(entity, excludePaths);
+          if (!hasValidContent) {
+            return false; // 子目录包含有效内容
+          }
+        }
+      }
+      return true; // 只包含空文件夹或没有内容
+    } catch (e) {
+      // 如果检查失败，保守地认为目录不为空
+      return false;
+    }
   }
 
   /// 递归处理目录（与 C++ 版本的 processDirectoryRecursive 对应）
@@ -348,6 +398,15 @@ class XmlMerger {
     // 先处理子目录
     for (final subdir in subdirs) {
       final dirName = _getFileName(subdir.path);
+      
+      // 检查目录是否只包含空文件夹
+      final isOnlyEmptyFolders = await _isDirectoryOnlyEmptyFolders(subdir, excludePaths);
+      if (isOnlyEmptyFolders) {
+        log('${_indent(indentLevel)}跳过空目录: $dirName (只包含空文件夹)');
+        stats.skippedDirs++;
+        continue;
+      }
+      
       log('${_indent(indentLevel)}处理目录: $dirName');
       buffer.writeln('${_indent(indentLevel)}<dir name="${_escapeXmlAttribute(dirName)}">');
       
