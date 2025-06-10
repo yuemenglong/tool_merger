@@ -142,7 +142,8 @@ class XmlMerger {
     
     // 创建排除路径集合
     final excludePaths = <String>{};
-    for (final item in project.items ?? []) {
+    // 只从“已启用”的项中构建排除列表
+    for (final item in enabledItems) {
       if (item.isExclude == true && item.path != null) {
         excludePaths.add(item.path!);
       }
