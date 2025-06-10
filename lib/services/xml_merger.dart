@@ -112,8 +112,8 @@ class XmlMerger {
   /// 
   /// [project] 要合并的项目，其中 items 应该是目录路径列表
   /// [logCallback] 可选的日志回调函数，用于接收处理过程中的日志信息
-  /// 返回生成的 XML 内容字符串
-  static Future<String> mergeXml(Project project, {Function(String)? logCallback}) async {
+  /// 返回包含XML内容和合并文件列表的MergeResult对象
+  static Future<MergeResult> mergeXml(Project project, {Function(String)? logCallback}) async {
     if (project.items == null || project.items!.isEmpty) {
       throw Exception('项目中没有目录');
     }
@@ -127,7 +127,7 @@ class XmlMerger {
   }
 
   /// 生成 XML 内容（处理目录列表）
-  static Future<String> _generateXmlContent(Project project, List<ProjectItem> enabledItems, Function(String)? logCallback) async {
+  static Future<MergeResult> _generateXmlContent(Project project, List<ProjectItem> enabledItems, Function(String)? logCallback) async {
     final buffer = StringBuffer();
     
     // XML 头部
@@ -136,6 +136,9 @@ class XmlMerger {
     
     // 使用对象来包装统计变量，以便在递归中正确传递引用
     final stats = _MergeStats();
+    
+    // 跟踪实际合并的文件路径
+    final mergedFilePaths = <String>[];
     
     // 创建排除路径集合
     final excludePaths = <String>{};
@@ -223,6 +226,7 @@ class XmlMerger {
           buffer.writeln(']]>');
           buffer.writeln('  </file>');
           stats.mergedFiles++;
+          mergedFilePaths.add(itemPath);
         } else if (await itemDirectory.exists()) {
           // 处理目录
           log('检查目录: ${item.name} (${itemPath})');
@@ -248,6 +252,7 @@ class XmlMerger {
             stats,
             log,
             excludePaths,
+            mergedFilePaths,
           );
           
           buffer.writeln('  </dir>');
@@ -265,7 +270,10 @@ class XmlMerger {
     
     log('生成完成: 合并文件 ${stats.mergedFiles} 个，跳过文件(非代码) ${stats.skippedFilesNonCode} 个，跳过文件(忽略) ${stats.skippedFilesIgnored} 个，跳过目录 ${stats.skippedDirs} 个');
     
-    return buffer.toString();
+    return MergeResult(
+      xmlContent: buffer.toString(),
+      mergedFilePaths: mergedFilePaths,
+    );
   }
 
   /// XML 属性转义
@@ -343,6 +351,7 @@ class XmlMerger {
     _MergeStats stats,
     Function(String) log,
     Set<String> excludePaths,
+    List<String> mergedFilePaths,
   ) async {
     final List<Directory> subdirs = [];
     final List<File> files = [];
@@ -417,6 +426,7 @@ class XmlMerger {
         stats,
         log,
         excludePaths,
+        mergedFilePaths,
       );
       
       buffer.writeln('${_indent(indentLevel)}</dir>');
@@ -484,6 +494,7 @@ class XmlMerger {
           buffer.writeln(']]>');
           buffer.writeln('${_indent(indentLevel)}</file>');
           stats.mergedFiles++;
+          mergedFilePaths.add(file.path);
         } catch (e) {
           log('错误: 读取文件失败 ${file.path}: $e');
           stats.skippedFilesIgnored++;

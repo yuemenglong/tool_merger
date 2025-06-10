@@ -392,6 +392,8 @@ class ToolMergerHomePage extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
+          _buildGenerateButton(context, controller),
+          const SizedBox(height: 8),
           _buildCreateButton(context, controller),
           const SizedBox(height: 4),
           _buildDeleteProjectButton(context, controller),
@@ -406,6 +408,81 @@ class ToolMergerHomePage extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildGenerateButton(BuildContext context, ProjectController controller) {
+    return Obx(() {
+      final hasSelectedProject = controller.selectedProject.value != null;
+      final hasOutputPath = controller.outputPath.value.isNotEmpty;
+      final hasEnabledItems = controller.enabledItemsCount > 0;
+      final canGenerate = hasSelectedProject && hasOutputPath && hasEnabledItems;
+      
+      return SizedBox(
+        width: double.infinity,
+        height: 84, // 普通按钮高度的3倍
+        child: ElevatedButton(
+          onPressed: canGenerate && !controller.isGenerating.value
+              ? () async {
+                  await controller.generateProject();
+                }
+              : null,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: canGenerate && !controller.isGenerating.value 
+                ? Colors.green 
+                : Colors.grey.shade300,
+            foregroundColor: canGenerate && !controller.isGenerating.value 
+                ? Colors.white 
+                : Colors.grey.shade600,
+            elevation: canGenerate && !controller.isGenerating.value ? 2 : 0,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(6),
+            ),
+          ),
+          child: controller.isGenerating.value
+              ? Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Colors.grey.shade600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Generating...',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                )
+              : Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.play_arrow,
+                      size: 32,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'GEN',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+      );
+    });
   }
 
   Widget _buildCreateButton(BuildContext context, ProjectController controller) {
@@ -492,7 +569,7 @@ class ToolMergerHomePage extends StatelessWidget {
       label: 'Log',
       onPressed: controller.lastGenerateLog.value.isNotEmpty
           ? () {
-              _showLastGenerateLog(controller);
+              _showLastGenerateLog(context, controller);
             }
           : null,
       color: AppConfig.logButtonColor,
@@ -1088,13 +1165,18 @@ class ToolMergerHomePage extends StatelessWidget {
         '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 
-  void _showLastGenerateLog(ProjectController controller) {
+  void _showLastGenerateLog(BuildContext context, ProjectController controller) {
+    // 获取屏幕大小
+    final screenSize = MediaQuery.of(context).size;
+    final dialogWidth = screenSize.width * 0.9;
+    final dialogHeight = screenSize.height * 0.9;
+
     Get.dialog(
       AlertDialog(
         title: const Text('生成日志'),
         content: SizedBox(
-          width: 600,
-          height: 400,
+          width: dialogWidth,
+          height: dialogHeight,
           child: SingleChildScrollView(
             child: Text(
               controller.lastGenerateLog.value,

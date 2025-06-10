@@ -566,9 +566,10 @@ class ProjectController extends GetxController {
       logBuffer.writeln('  - 目录数: $totalDirs');
       logBuffer.writeln('');
       
-      final xmlContent = await XmlMerger.mergeXml(project, logCallback: (message) {
+      final mergeResult = await XmlMerger.mergeXml(project, logCallback: (message) {
         logBuffer.writeln(message);
       });
+      final xmlContent = mergeResult.xmlContent;
       logBuffer.writeln('');
       logBuffer.writeln('XML 内容生成完成');
       logBuffer.writeln('  - 内容大小: ${(xmlContent.length / 1024).toStringAsFixed(1)} KB');
@@ -624,7 +625,7 @@ class ProjectController extends GetxController {
       // 收集文件状态信息
       logBuffer.writeln('');
       logBuffer.writeln('=== 收集文件状态信息 ===');
-      final fileStatuses = await _collectFileStatuses(enabledItems, logBuffer);
+      final fileStatuses = await _collectFileStatuses(mergeResult.mergedFilePaths, logBuffer);
       logBuffer.writeln('收集到 ${fileStatuses.length} 个文件的状态信息');
       
       // 保存生成状态信息
@@ -688,39 +689,20 @@ class ProjectController extends GetxController {
   }
 
   // 收集文件状态信息
-  Future<List<FileStatusInfo>> _collectFileStatuses(List<ProjectItem> enabledItems, StringBuffer logBuffer) async {
+  Future<List<FileStatusInfo>> _collectFileStatuses(List<String> mergedFilePaths, StringBuffer logBuffer) async {
     final List<FileStatusInfo> fileStatuses = [];
     
-    for (final item in enabledItems) {
-      if (item.path == null || item.path!.isEmpty) continue;
+    for (final filePath in mergedFilePaths) {
+      if (filePath.isEmpty) continue;
       
       try {
-        final entity = FileSystemEntity.typeSync(item.path!);
-        
-        if (entity == FileSystemEntityType.file) {
-          // 处理单个文件
-          final fileStatus = await _getFileStatus(item.path!);
-          if (fileStatus != null) {
-            fileStatuses.add(fileStatus);
-            logBuffer.writeln('  文件: ${fileStatus.fullPath} (${fileStatus.fileSize} bytes, ${fileStatus.lineCount} lines)');
-          }
-        } else if (entity == FileSystemEntityType.directory) {
-          // 处理目录中的所有文件
-          final dir = Directory(item.path!);
-          int dirFileCount = 0;
-          await for (final entity in dir.list(recursive: true)) {
-            if (entity is File) {
-              final fileStatus = await _getFileStatus(entity.path);
-              if (fileStatus != null) {
-                fileStatuses.add(fileStatus);
-                dirFileCount++;
-              }
-            }
-          }
-          logBuffer.writeln('  目录: ${item.path} (包含 $dirFileCount 个文件)');
+        final fileStatus = await _getFileStatus(filePath);
+        if (fileStatus != null) {
+          fileStatuses.add(fileStatus);
+          logBuffer.writeln('  文件: ${fileStatus.fullPath} (${fileStatus.fileSize} bytes, ${fileStatus.lineCount} lines)');
         }
       } catch (e) {
-        logBuffer.writeln('  错误: 无法处理 ${item.path} - $e');
+        logBuffer.writeln('  错误: 无法处理 $filePath - $e');
       }
     }
     

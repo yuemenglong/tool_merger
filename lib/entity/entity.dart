@@ -143,3 +143,13 @@ class GenerateStatus {
     return data;
   }
 }
+
+class MergeResult {
+  String xmlContent;
+  List<String> mergedFilePaths;
+
+  MergeResult({
+    required this.xmlContent,
+    required this.mergedFilePaths,
+  });
+}
