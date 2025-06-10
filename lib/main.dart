@@ -284,7 +284,7 @@ class ToolMergerHomePage extends StatelessWidget {
         height: 36,
         decoration: BoxDecoration(
           color: isSelected
-              ? Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3)
+              ? Colors.grey.shade200
               : index % 2 == 0
                   ? Colors.grey.shade50
                   : Colors.white,
