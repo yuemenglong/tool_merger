@@ -451,6 +451,64 @@ class ProjectController extends GetxController {
     }
   }
 
+  // 新增：处理拖拽文件夹到项目列表以快速创建项目
+  Future<void> handleProjectDropAndCreate(List<XFile> files) async {
+    // 1. 输入验证
+    if (files.isEmpty) {
+      return; // 没有拖入任何内容
+    }
+
+    // 此功能只处理拖入的第一个项目，并确保它是一个文件夹
+    final droppedFile = files.first;
+    final filePath = droppedFile.path;
+
+    final entityType = FileSystemEntity.typeSync(filePath);
+    if (entityType != FileSystemEntityType.directory) {
+      Get.snackbar('创建失败', '请拖拽一个文件夹以快速创建项目。');
+      return;
+    }
+
+    // 2. 提取文件夹名作为项目名，并检查是否重复
+    final projectName = filePath.split(RegExp(r'[/\]')).last;
+    final isDuplicate = projects.any((p) => p.name == projectName);
+    if (isDuplicate) {
+      Get.snackbar('创建失败', '名为 "$projectName" 的项目已存在。');
+      return;
+    }
+
+    // 3. 确定新项目的输出路径
+    // 规则：使用当前第一个项目的输出路径；若项目列表为空，则为空字符串。
+    final String defaultOutputPath = projects.isNotEmpty ? (projects.first.outputPath ?? '') : '';
+
+    // 4. 创建新的 ProjectItem
+    final newItem = ProjectItem(
+      name: projectName,
+      path: filePath,
+      enabled: true,
+      sortOrder: 0, // 因为是唯一的item，所以排序为0
+      isExclude: false,
+    );
+
+    // 5. 创建新的 Project
+    final newProject = Project(
+      name: projectName,
+      outputPath: defaultOutputPath,
+      sortOrder: projects.length, // 添加到列表末尾
+      createTime: DateTime.now(),
+      updateTime: DateTime.now(),
+      items: [newItem], // 将文件夹作为唯一的item
+    );
+
+    // 6. 添加到列表、保存并提供用户反馈
+    projects.add(newProject);
+    await saveProjects();
+    
+    // (可选，但建议) 自动选中新创建的项目，提升用户体验
+    selectProject(newProject);
+
+    Get.snackbar('成功', '项目 "$projectName" 已通过拖拽快速创建。');
+  }
+
   // 生成项目合并文件
   Future<void> generateProject([Project? targetProject]) async {
     // 检查是否正在生成
@@ -737,4 +795,4 @@ class ProjectController extends GetxController {
       return null;
     }
   }
-} 
+}

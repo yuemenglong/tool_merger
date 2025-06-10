@@ -173,16 +173,23 @@ class ToolMergerHomePage extends StatelessWidget {
   }
 
   Widget _buildProjectTable(BuildContext context, ProjectController controller) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Column(
-        children: [
-          _buildProjectTableHeader(context),
-          Expanded(child: _buildProjectTableBody(context, controller)),
-        ],
+    // 核心改动：用 DropTarget 包裹起来
+    return DropTarget(
+      onDragDone: (detail) async {
+        // 调用一个新的 Controller 方法来处理这个特殊的拖拽创建逻辑
+        await controller.handleProjectDropAndCreate(detail.files);
+      },
+      child: Container( // 原本的 Container 成为 DropTarget 的子组件
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Column(
+          children: [
+            _buildProjectTableHeader(context),
+            Expanded(child: _buildProjectTableBody(context, controller)),
+          ],
+        ),
       ),
     );
   }
