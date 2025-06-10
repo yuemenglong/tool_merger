@@ -7,6 +7,7 @@ import 'entity/entity.dart';
 import 'dialogs.dart';
 import 'controllers/project_controller.dart';
 import 'config.dart';
+import 'utils/path_utils.dart';
 
 void main() {
   runApp(const MyApp());
@@ -399,6 +400,8 @@ class ToolMergerHomePage extends StatelessWidget {
           const SizedBox(height: 4),
           _buildMoveDownProjectButton(context, controller),
           const SizedBox(height: 4),
+          _buildStatusButton(context, controller),
+          const SizedBox(height: 4),
           _buildLogButton(context, controller),
         ],
       ),
@@ -467,6 +470,19 @@ class ToolMergerHomePage extends StatelessWidget {
             }
           : null,
       color: AppConfig.moveButtonColor,
+    ));
+  }
+
+  Widget _buildStatusButton(BuildContext context, ProjectController controller) {
+    return Obx(() => _buildActionButton(
+      icon: Icons.info_outline,
+      label: 'Status',
+      onPressed: controller.lastGenerateStatus.value != null
+          ? () {
+              _showGenerateStatus(context, controller);
+            }
+          : null,
+      color: AppConfig.statusButtonColor,
     ));
   }
 
@@ -1101,5 +1117,234 @@ class ToolMergerHomePage extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  void _showGenerateStatus(BuildContext context, ProjectController controller) {
+    final status = controller.lastGenerateStatus.value;
+    if (status == null) return;
+
+    // 获取屏幕大小
+    final screenSize = MediaQuery.of(context).size;
+    final dialogWidth = screenSize.width * 0.9;
+    final dialogHeight = screenSize.height * 0.9;
+
+    // 计算公共父目录
+    final allPaths = status.fileStatuses?.map((fs) => fs.fullPath ?? '').where((path) => path.isNotEmpty).toList() ?? [];
+    final commonParent = PathUtils.findCommonParentPath(allPaths);
+
+    Get.dialog(
+      AlertDialog(
+        title: Row(
+          children: [
+            const Text('文件状态信息'),
+            if (commonParent != null) ...[
+              const Spacer(),
+              Tooltip(
+                message: '公共父目录: $commonParent',
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: Colors.blue.shade200),
+                  ),
+                  child: Text(
+                    '基于: ${commonParent.split(RegExp(r'[/\\]')).last}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.blue.shade700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+        content: SizedBox(
+          width: dialogWidth,
+          height: dialogHeight,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 基本信息
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '生成时间: ${_formatDateTime(status.generateTime)}',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text('项目名称: ${status.projectName ?? "未知"}'),
+                    Text('文件总数: ${status.fileStatuses?.length ?? 0}'),
+                    if (commonParent != null)
+                      Text('公共目录: $commonParent', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              // 文件列表表格
+              const Text(
+                '文件详情:',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Column(
+                    children: [
+                      // 表头
+                      Container(
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primaryContainer,
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(6),
+                            topRight: Radius.circular(6),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              flex: 5,
+                              child: Container(
+                                alignment: Alignment.center,
+                                child: const Text(
+                                  '文件路径',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              flex: 1,
+                              child: Container(
+                                alignment: Alignment.center,
+                                child: const Text(
+                                  '后缀',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              flex: 1,
+                              child: Container(
+                                alignment: Alignment.center,
+                                child: const Text(
+                                  '行数',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              flex: 1,
+                              child: Container(
+                                alignment: Alignment.center,
+                                child: const Text(
+                                  '文件大小',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // 表格内容
+                      Expanded(
+                        child: ListView.builder(
+                          itemCount: status.fileStatuses?.length ?? 0,
+                          itemBuilder: (context, index) {
+                            final fileStatus = status.fileStatuses![index];
+                            final displayPath = PathUtils.getDisplayPath(fileStatus.fullPath ?? '', commonParent);
+                            
+                            return Container(
+                              height: 28,
+                              decoration: BoxDecoration(
+                                color: index % 2 == 0 ? Colors.white : Colors.grey.shade50,
+                                border: Border(
+                                  bottom: BorderSide(color: Colors.grey.shade200),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    flex: 5,
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                                      child: Tooltip(
+                                        message: fileStatus.fullPath ?? '',
+                                        child: Text(
+                                          displayPath,
+                                          style: const TextStyle(fontSize: 12),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    flex: 1,
+                                    child: Container(
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        fileStatus.extension ?? '',
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    flex: 1,
+                                    child: Container(
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        '${fileStatus.lineCount ?? 0}',
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    flex: 1,
+                                    child: Container(
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        _formatFileSize(fileStatus.fileSize ?? 0),
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('关闭'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatFileSize(int bytes) {
+    if (bytes < 1024) return '${bytes}B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)}KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)}MB';
   }
 }

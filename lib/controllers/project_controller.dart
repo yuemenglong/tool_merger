@@ -19,6 +19,7 @@ class ProjectController extends GetxController {
   final RxString outputPath = ''.obs;
   final RxString lastGenerateLog = ''.obs;
   final RxBool isGenerating = false.obs;
+  final Rx<GenerateStatus?> lastGenerateStatus = Rx<GenerateStatus?>(null);
 
   // 过滤后的项目列表
   List<Project> get filteredProjects {
@@ -620,6 +621,19 @@ class ProjectController extends GetxController {
       logBuffer.writeln('  - 目录项: $totalDirs');
       logBuffer.writeln('  - 输出文件: ${outputFile.path}');
       
+      // 收集文件状态信息
+      logBuffer.writeln('');
+      logBuffer.writeln('=== 收集文件状态信息 ===');
+      final fileStatuses = await _collectFileStatuses(enabledItems, logBuffer);
+      logBuffer.writeln('收集到 ${fileStatuses.length} 个文件的状态信息');
+      
+      // 保存生成状态信息
+      lastGenerateStatus.value = GenerateStatus(
+        generateTime: DateTime.now(),
+        projectName: project.name,
+        fileStatuses: fileStatuses,
+      );
+      
       // 保存日志到全局变量
       lastGenerateLog.value = logBuffer.toString();
       
@@ -673,7 +687,72 @@ class ProjectController extends GetxController {
     }
   }
 
+  // 收集文件状态信息
+  Future<List<FileStatusInfo>> _collectFileStatuses(List<ProjectItem> enabledItems, StringBuffer logBuffer) async {
+    final List<FileStatusInfo> fileStatuses = [];
+    
+    for (final item in enabledItems) {
+      if (item.path == null || item.path!.isEmpty) continue;
+      
+      try {
+        final entity = FileSystemEntity.typeSync(item.path!);
+        
+        if (entity == FileSystemEntityType.file) {
+          // 处理单个文件
+          final fileStatus = await _getFileStatus(item.path!);
+          if (fileStatus != null) {
+            fileStatuses.add(fileStatus);
+            logBuffer.writeln('  文件: ${fileStatus.fullPath} (${fileStatus.fileSize} bytes, ${fileStatus.lineCount} lines)');
+          }
+        } else if (entity == FileSystemEntityType.directory) {
+          // 处理目录中的所有文件
+          final dir = Directory(item.path!);
+          int dirFileCount = 0;
+          await for (final entity in dir.list(recursive: true)) {
+            if (entity is File) {
+              final fileStatus = await _getFileStatus(entity.path);
+              if (fileStatus != null) {
+                fileStatuses.add(fileStatus);
+                dirFileCount++;
+              }
+            }
+          }
+          logBuffer.writeln('  目录: ${item.path} (包含 $dirFileCount 个文件)');
+        }
+      } catch (e) {
+        logBuffer.writeln('  错误: 无法处理 ${item.path} - $e');
+      }
+    }
+    
+    return fileStatuses;
+  }
 
-
-
+  // 获取单个文件的状态信息
+  Future<FileStatusInfo?> _getFileStatus(String filePath) async {
+    try {
+      final file = File(filePath);
+      if (!await file.exists()) return null;
+      
+      final stat = await file.stat();
+      final content = await file.readAsString();
+      final lines = content.split('\n');
+      
+      // 获取文件扩展名
+      String? extension;
+      final lastDotIndex = filePath.lastIndexOf('.');
+      if (lastDotIndex != -1 && lastDotIndex < filePath.length - 1) {
+        extension = filePath.substring(lastDotIndex + 1);
+      }
+      
+      return FileStatusInfo(
+        fullPath: filePath,
+        extension: extension,
+        lineCount: lines.length,
+        fileSize: stat.size,
+        processTime: DateTime.now(),
+      );
+    } catch (e) {
+      return null;
+    }
+  }
 } 

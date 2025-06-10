@@ -14,6 +14,7 @@ class AppConfig {
   static const Color createButtonColor = Colors.green;     // Create按钮颜色
   static const Color deleteButtonColor = Colors.red;       // Delete按钮颜色
   static const Color moveButtonColor = Colors.blue;        // Up/Down按钮颜色
+  static const Color statusButtonColor = Colors.purple;    // Status按钮颜色
   static const Color logButtonColor = Colors.orange;       // Log按钮颜色
   static const MaterialColor enabledCountColor = Colors.green;     // 启用数量显示颜色
   static const Color excludeSwitchActiveColor = Colors.green;  // 排除开关激活颜色
