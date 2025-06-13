@@ -27,11 +27,12 @@ class XmlMerger {
     '.yaml',
     '.mdc',
     '.rs',
-    ".sh"
+    ".sh",
+    ".cnf",
   };
 
   // 特殊文件模式（与 C++ 版本保持一致）
-  static const List<String> _specialFilePatterns = ['cmakelists.txt', 'readme.md', 'readme.txt'];
+  static const List<String> _specialFilePatterns = ['cmakelists.txt', 'readme.md', 'readme.txt', "Dockerfile"];
 
   // 忽略的路径模式（与 C++ 版本保持一致）
   static const List<String> _ignorePatterns = [
@@ -60,7 +61,7 @@ class XmlMerger {
   /// 检查文件是否为特殊文件（如 README, CMakeLists 等）
   static bool isSpecialFile(String fileName) {
     final lowerName = fileName.toLowerCase();
-    return _specialFilePatterns.any((pattern) => lowerName == pattern);
+    return _specialFilePatterns.any((pattern) => lowerName == pattern.toLowerCase());
   }
 
   /// 检查路径是否应该被忽略
