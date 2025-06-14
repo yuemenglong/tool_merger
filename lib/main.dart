@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:desktop_drop/desktop_drop.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'entity/entity.dart';
 import 'dialogs.dart';
 import 'controllers/project_controller.dart';
@@ -779,7 +780,8 @@ class ToolMergerHomePage extends StatelessWidget {
               _buildItemHeaderCell(context, '状态', 80),
               _buildItemHeaderCell(context, '启用', 80),
               _buildItemHeaderCell(context, '名称', 160),
-              _buildItemHeaderCell(context, '路径', 280),
+              _buildItemHeaderCell(context, '打开', 80),
+              _buildItemHeaderCell(context, '路径', 200),
             ],
           ),
         ),
@@ -883,6 +885,7 @@ class ToolMergerHomePage extends StatelessWidget {
                       _buildItemStatusCell(context, controller, item),
                       _buildItemEnabledCell(context, controller, item),
                       _buildItemNameCell(context, item, isSelected),
+                      _buildItemOpenCell(context, item),
                       _buildItemPathCell(context, item),
                     ],
                   ),
@@ -965,9 +968,55 @@ class ToolMergerHomePage extends StatelessWidget {
     );
   }
 
+  Widget _buildItemOpenCell(BuildContext context, ProjectItem item) {
+    return SizedBox(
+      width: 80,
+      child: Center(
+        child: IconButton(
+          icon: const Icon(Icons.open_in_new_outlined),
+          iconSize: 18.0,
+          color: Colors.blue.shade700,
+          tooltip: '打开所在文件夹',
+          onPressed: () async {
+            final path = item.path;
+            if (path == null || path.isEmpty) {
+              Get.snackbar('错误', '项目路径无效',
+                  snackPosition: SnackPosition.BOTTOM);
+              return;
+            }
+
+            String pathToLaunch;
+            // 异步检查路径是文件还是目录
+            bool isDirectory = await Directory(path).exists();
+            bool isFile = !isDirectory && await File(path).exists();
+
+            if (isDirectory) {
+              pathToLaunch = path;
+            } else if (isFile) {
+              // 如果是文件，获取其父目录的路径
+              pathToLaunch = File(path).parent.path;
+            } else {
+              Get.snackbar('错误', '路径不存在: $path',
+                  snackPosition: SnackPosition.BOTTOM);
+              return;
+            }
+
+            final Uri uri = Uri.file(pathToLaunch);
+
+            // 尝试使用 url_launcher 打开 URI
+            if (!await launchUrl(uri)) {
+              Get.snackbar('错误', '无法打开路径: $pathToLaunch',
+                  snackPosition: SnackPosition.BOTTOM);
+            }
+          },
+        ),
+      ),
+    );
+  }
+
   Widget _buildItemPathCell(BuildContext context, ProjectItem item) {
     return SizedBox(
-      width: 280,
+      width: 200,
       child: Padding(
         padding: const EdgeInsets.only(left: 4),
         child: Text(
