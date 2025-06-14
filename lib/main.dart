@@ -976,7 +976,7 @@ class ToolMergerHomePage extends StatelessWidget {
           icon: const Icon(Icons.open_in_new_outlined),
           iconSize: 18.0,
           color: Colors.blue.shade700,
-          tooltip: '打开所在文件夹',
+          tooltip: '在文件夹中显示', // 提示文本
           onPressed: () async {
             final path = item.path;
             if (path == null || path.isEmpty) {
@@ -985,27 +985,19 @@ class ToolMergerHomePage extends StatelessWidget {
               return;
             }
 
-            String pathToLaunch;
-            // 异步检查路径是文件还是目录
-            bool isDirectory = await Directory(path).exists();
-            bool isFile = !isDirectory && await File(path).exists();
-
-            if (isDirectory) {
-              pathToLaunch = path;
-            } else if (isFile) {
-              // 如果是文件，获取其父目录的路径
-              pathToLaunch = File(path).parent.path;
-            } else {
+            // 确认路径存在
+            final pathExists = await FileSystemEntity.type(path) != FileSystemEntityType.notFound;
+            if (!pathExists) {
               Get.snackbar('错误', '路径不存在: $path',
                   snackPosition: SnackPosition.BOTTOM);
               return;
             }
 
-            final Uri uri = Uri.file(pathToLaunch);
-
-            // 尝试使用 url_launcher 打开 URI
-            if (!await launchUrl(uri)) {
-              Get.snackbar('错误', '无法打开路径: $pathToLaunch',
+            try {
+              // 直接执行 Windows explorer 命令
+              await Process.run('explorer.exe', ['/select,', path]);
+            } catch (e) {
+              Get.snackbar('操作失败', '无法打开路径: $e',
                   snackPosition: SnackPosition.BOTTOM);
             }
           },
