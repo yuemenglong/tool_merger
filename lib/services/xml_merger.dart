@@ -5,17 +5,33 @@ import '../entity/entity.dart';
 class XmlMerger {
   // 代码文件扩展名（与 C++ 版本保持一致）
   static const Set<String> _codeExtensions = {
-    '.c', '.cpp', '.h', '.hpp', '.cc', '.cxx', '.hxx', '.java',
-    '.py', '.js', '.ts', '.go', '.dart', '.kt', '.kts', '.cs',
-    '.gradle', '.properties', '.yml', '.yaml', '.mdc', '.rs'
+    '.c',
+    '.cpp',
+    '.h',
+    '.hpp',
+    '.cc',
+    '.cxx',
+    '.hxx',
+    '.java',
+    '.py',
+    '.js',
+    '.ts',
+    '.go',
+    '.dart',
+    '.kt',
+    '.kts',
+    '.cs',
+    '.gradle',
+    '.properties',
+    '.yml',
+    '.yaml',
+    '.mdc',
+    '.rs',
+    '.proto',
   };
 
   // 特殊文件模式（与 C++ 版本保持一致）
-  static const List<String> _specialFilePatterns = [
-    'cmakelists.txt',
-    'readme.md',
-    'readme.txt'
-  ];
+  static const List<String> _specialFilePatterns = ['cmakelists.txt', 'readme.md', 'readme.txt'];
 
   // 忽略的路径模式（与 C++ 版本保持一致）
   static const List<String> _ignorePatterns = [
@@ -33,9 +49,8 @@ class XmlMerger {
   ];
 
   // 反忽略模式（与 C++ 版本保持一致）
-  static const List<String> _antiIgnorePatterns = [
-    '.cursor'
-  ];
+  static const List<String> _antiIgnorePatterns = ['.cursor'];
+
   /// 检查文件是否为代码文件（通过扩展名）
   static bool isCodeFile(String filePath) {
     final extension = _getFileExtension(filePath).toLowerCase();
@@ -51,30 +66,30 @@ class XmlMerger {
   /// 检查路径是否应该被忽略
   static bool shouldIgnorePath(String filePath) {
     final pathParts = filePath.split(RegExp(r'[/\\]'));
-    
+
     for (final part in pathParts) {
       if (part.isEmpty || part == '.' || part == '..') continue;
-      
+
       // 检查反忽略模式（优先级更高）
       for (final antiPattern in _antiIgnorePatterns) {
         if (part == antiPattern) {
           return false; // 不忽略
         }
       }
-      
+
       // 检查忽略模式
       for (final pattern in _ignorePatterns) {
         if (part == pattern) {
           return true; // 忽略
         }
       }
-      
+
       // 忽略以点开头的文件/目录（除了反忽略列表中的）
       if (part.startsWith('.') && !_antiIgnorePatterns.contains(part)) {
         return true;
       }
     }
-    
+
     return false;
   }
 
@@ -83,10 +98,10 @@ class XmlMerger {
     if (shouldIgnorePath(filePath)) {
       return false;
     }
-    
+
     final fileName = _getFileName(filePath);
     final extension = _getFileExtension(filePath);
-    
+
     return isCodeFile(filePath) || isSpecialFile(fileName);
   }
 
@@ -109,7 +124,7 @@ class XmlMerger {
   }
 
   /// 将项目合并为 XML 字符串
-  /// 
+  ///
   /// [project] 要合并的项目，其中 items 应该是目录路径列表
   /// [logCallback] 可选的日志回调函数，用于接收处理过程中的日志信息
   /// 返回包含XML内容和合并文件列表的MergeResult对象
@@ -127,19 +142,21 @@ class XmlMerger {
   }
 
   /// 生成 XML 内容（处理目录列表）
-  static Future<MergeResult> _generateXmlContent(Project project, List<ProjectItem> enabledItems, Function(String)? logCallback) async {
+  static Future<MergeResult> _generateXmlContent(
+      Project project, List<ProjectItem> enabledItems, Function(String)? logCallback) async {
     final buffer = StringBuffer();
-    
+
     // XML 头部
     buffer.writeln('<?xml version="1.0" encoding="UTF-8"?>');
-    buffer.writeln('<project name="${_escapeXmlAttribute(project.name ?? '')}" output_path="${_escapeXmlAttribute(project.outputPath ?? '')}">');
-    
+    buffer.writeln(
+        '<project name="${_escapeXmlAttribute(project.name ?? '')}" output_path="${_escapeXmlAttribute(project.outputPath ?? '')}">');
+
     // 使用对象来包装统计变量，以便在递归中正确传递引用
     final stats = _MergeStats();
-    
+
     // 跟踪实际合并的文件路径
     final mergedFilePaths = <String>[];
-    
+
     // 创建排除路径集合
     final excludePaths = <String>{};
     // 只从“已启用”的项中构建排除列表
@@ -148,33 +165,33 @@ class XmlMerger {
         excludePaths.add(item.path!);
       }
     }
-    
+
     // 创建日志函数
     void log(String message) {
       print(message);
       logCallback?.call(message);
     }
-    
+
     // 处理每个启用的项目项（可能是目录或文件）
     for (final item in enabledItems) {
       try {
         final itemPath = item.path ?? '';
-        
+
         // 检查是否被排除
         if (item.isExclude == true) {
           log('跳过排除项: ${item.name} (${itemPath})');
           stats.skippedFilesIgnored++;
           continue;
         }
-        
+
         final itemFile = File(itemPath);
         final itemDirectory = Directory(itemPath);
-        
+
         // 检查是文件还是目录
         if (await itemFile.exists()) {
           // 处理单个文件（无视过滤规则，必然引入）
           log('处理文件: ${item.name} (${itemPath})');
-          
+
           String content;
           try {
             // 尝试以 UTF-8 读取
@@ -192,7 +209,8 @@ class XmlMerger {
             continue;
           }
 
-          buffer.writeln('  <file name="${_escapeXmlAttribute(item.name ?? '')}" path="${_escapeXmlAttribute(itemPath)}">');
+          buffer.writeln(
+              '  <file name="${_escapeXmlAttribute(item.name ?? '')}" path="${_escapeXmlAttribute(itemPath)}">');
           buffer.writeln('    <![CDATA[');
 
           // 处理内容
@@ -211,7 +229,7 @@ class XmlMerger {
               final line = lines[i];
               // 移除行尾的回车符
               final cleanLine = line.endsWith('\r') ? line.substring(0, line.length - 1) : line;
-              
+
               if (i == 0) {
                 buffer.writeln(); // 在第一行前添加换行
               }
@@ -231,7 +249,7 @@ class XmlMerger {
         } else if (await itemDirectory.exists()) {
           // 处理目录
           log('检查目录: ${item.name} (${itemPath})');
-          
+
           // 检查目录是否只包含空文件夹
           final isOnlyEmptyFolders = await _isDirectoryOnlyEmptyFolders(itemDirectory, excludePaths);
           if (isOnlyEmptyFolders) {
@@ -239,23 +257,24 @@ class XmlMerger {
             stats.skippedDirs++;
             continue;
           }
-          
+
           log('处理目录: ${item.name} (${itemPath})');
-          
+
           // 为每个根目录创建一个 <dir> 元素
           buffer.writeln('  <dir name="${_escapeXmlAttribute(item.name ?? '')}">');
-          
+
           // 递归处理目录内容
           await _processDirectoryRecursive(
             itemDirectory,
             buffer,
-            2, // 缩进级别 2（在 project > dir 内）
+            2,
+            // 缩进级别 2（在 project > dir 内）
             stats,
             log,
             excludePaths,
             mergedFilePaths,
           );
-          
+
           buffer.writeln('  </dir>');
         } else {
           log('警告: 路径不存在: ${itemPath}');
@@ -266,11 +285,11 @@ class XmlMerger {
         stats.skippedFilesIgnored++;
       }
     }
-    
+
     buffer.writeln('</project>');
-    
+
     log('生成完成: 合并文件 ${stats.mergedFiles} 个，跳过文件(非代码) ${stats.skippedFilesNonCode} 个，跳过文件(忽略) ${stats.skippedFilesIgnored} 个，跳过目录 ${stats.skippedDirs} 个');
-    
+
     return MergeResult(
       xmlContent: buffer.toString(),
       mergedFilePaths: mergedFilePaths,
@@ -408,7 +427,7 @@ class XmlMerger {
     // 先处理子目录
     for (final subdir in subdirs) {
       final dirName = _getFileName(subdir.path);
-      
+
       // 检查目录是否只包含空文件夹
       final isOnlyEmptyFolders = await _isDirectoryOnlyEmptyFolders(subdir, excludePaths);
       if (isOnlyEmptyFolders) {
@@ -416,10 +435,10 @@ class XmlMerger {
         stats.skippedDirs++;
         continue;
       }
-      
+
       log('${_indent(indentLevel)}处理目录: $dirName');
       buffer.writeln('${_indent(indentLevel)}<dir name="${_escapeXmlAttribute(dirName)}">');
-      
+
       await _processDirectoryRecursive(
         subdir,
         buffer,
@@ -429,7 +448,7 @@ class XmlMerger {
         excludePaths,
         mergedFilePaths,
       );
-      
+
       buffer.writeln('${_indent(indentLevel)}</dir>');
     }
 
@@ -441,7 +460,7 @@ class XmlMerger {
       // 检查是否为代码文件或特殊文件（与 C++ 版本逻辑一致）
       if (isCodeFile(file.path) || isSpecialFile(fileName)) {
         log('${_indent(indentLevel)}处理文件: $fileName');
-        
+
         try {
           String content;
           try {
@@ -479,7 +498,7 @@ class XmlMerger {
               final line = lines[i];
               // 移除行尾的回车符
               final cleanLine = line.endsWith('\r') ? line.substring(0, line.length - 1) : line;
-              
+
               if (i == 0) {
                 buffer.writeln(); // 在第一行前添加换行
               }
@@ -519,4 +538,4 @@ class _MergeStats {
   int skippedFilesNonCode = 0;
   int skippedFilesIgnored = 0;
   int skippedDirs = 0;
-} 
+}
