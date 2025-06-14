@@ -397,57 +397,49 @@ class ProjectController extends GetxController {
       Get.snackbar('提示', '请先选择一个项目');
       return;
     }
-    
+
     int addedCount = 0;
     int ignoredCount = 0;
-    
+
     for (var file in files) {
       final fileName = file.name;
       final filePath = file.path;
-      
-      // 检查是否为目录
-      final entity = FileSystemEntity.typeSync(filePath);
-      if (entity == FileSystemEntityType.directory) {
-        // 处理目录
-        final exists = currentItems.any((item) => item.path == filePath);
-        if (!exists) {
-          final newItem = ProjectItem(
-            name: fileName,
-            path: filePath,
-            enabled: true,
-            sortOrder: currentItems.length,
-            isExclude: false,
-          );
-          
-          currentItems.add(newItem);
-          selectedProject.value!.items = currentItems.toList();
-          selectedProject.value!.updateTime = DateTime.now();
-          addedCount++;
-          
-          // 检查目录类型并统计
-          if (XmlMerger.shouldIgnorePath(filePath)) {
-            ignoredCount++;
-          }
+
+      // 检查是否已存在
+      final exists = currentItems.any((item) => item.path == filePath);
+      if (!exists) {
+        final newItem = ProjectItem(
+          name: fileName, // 使用文件或文件夹的名称
+          path: filePath,
+          enabled: true,
+          sortOrder: currentItems.length,
+          isExclude: false,
+        );
+
+        currentItems.add(newItem);
+        addedCount++;
+
+        // (可选) 检查并统计被忽略的路径
+        if (XmlMerger.shouldIgnorePath(filePath)) {
+          ignoredCount++;
         }
-      } else {
-        // 对于单个文件，提示用户应该拖拽目录
-        Get.snackbar('提示', '请拖拽目录而不是单个文件\n当前工具处理的是目录结构');
-        return;
       }
     }
-    
-    await saveProjects();
-    
-    // 构建提示消息
-    String message = '已添加 $addedCount 个目录';
-    if (ignoredCount > 0) {
-      message += '\n其中 $ignoredCount 个目录路径可能应该被忽略';
-    }
-    
+
+    // 如果有项目被添加，则更新并保存
     if (addedCount > 0) {
-      Get.snackbar('成功', message, duration: const Duration(seconds: 3));
+      selectedProject.value!.items = currentItems.toList();
+      selectedProject.value!.updateTime = DateTime.now();
+      await saveProjects();
+
+      // 构建并显示成功的提示消息
+      String message = '已添加 $addedCount 个项目 (文件/目录)';
+      if (ignoredCount > 0) {
+        message += '\n其中 $ignoredCount 个路径可能应该被忽略';
+      }
+      Get.snackbar('成功', message, duration: const Duration(seconds: 4));
     } else {
-      Get.snackbar('提示', '所选目录已存在于项目中');
+      Get.snackbar('提示', '所选项目均已存在');
     }
   }
 
@@ -527,7 +519,7 @@ class ProjectController extends GetxController {
     }
 
     final projectItems = project.items ?? [];
-    final enabledItems = projectItems.where((item) => item.enabled == true).toList();
+    final enabledItems = projectItems.where((item) => item.enabled == true && (item.isExclude ?? false) == false).toList();
     if (enabledItems.isEmpty) {
       Get.snackbar('错误', '没有启用的文件');
       return;

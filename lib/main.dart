@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -777,8 +778,8 @@ class ToolMergerHomePage extends StatelessWidget {
             children: [
               _buildItemHeaderCell(context, '状态', 80),
               _buildItemHeaderCell(context, '启用', 80),
-              _buildItemHeaderCell(context, '目录名', 160),
-              _buildItemHeaderCell(context, '目录路径', 280),
+              _buildItemHeaderCell(context, '名称', 160),
+              _buildItemHeaderCell(context, '路径', 280),
             ],
           ),
         ),
@@ -935,19 +936,22 @@ class ToolMergerHomePage extends StatelessWidget {
   }
 
   Widget _buildItemNameCell(BuildContext context, ProjectItem item, bool isSelected) {
+    // 判断路径是文件还是目录
+    final bool isDirectory = FileSystemEntity.isDirectorySync(item.path ?? '');
+    
     return SizedBox(
       width: 160,
       child: Row(
         children: [
           Icon(
-            Icons.folder,
+            isDirectory ? Icons.folder_open : Icons.insert_drive_file_outlined, // 动态图标
             size: 14,
             color: isSelected ? Theme.of(context).colorScheme.secondary : Colors.grey.shade600,
           ),
           const SizedBox(width: 4),
           Expanded(
             child: Text(
-              _getFileName(item.path ?? ''),
+              item.name ?? '', // 直接使用item.name，它在拖拽时已保存
               style: TextStyle(
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 fontSize: AppConfig.primaryFontSize,

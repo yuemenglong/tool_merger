@@ -152,43 +152,31 @@ class XmlMerger {
     buffer.writeln('<?xml version="1.0" encoding="UTF-8"?>');
     buffer.writeln(
         '<project name="${_escapeXmlAttribute(project.name ?? '')}" output_path="${_escapeXmlAttribute(project.outputPath ?? '')}">');
-    // 使用对象来包装统计变量，以便在递归中正确传递引用
+    
     final stats = _MergeStats();
-
-    // 跟踪实际合并的文件路径
     final mergedFilePaths = <String>[];
 
-    // 创建排除路径集合
-    final excludePaths = <String>{};
-    // 只从“已启用”的项中构建排除列表
-    for (final item in enabledItems) {
-      if (item.isExclude == true && item.path != null) {
-        excludePaths.add(item.path!);
-      }
-    }
+    // **新增**: 创建一个包含所有项目路径到项目对象的映射
+    final allItemsMap = <String, ProjectItem>{
+      for (var item in project.items ?? [])
+        if (item.path != null) item.path!: item,
+    };
 
-    // 创建日志函数
     void log(String message) {
       print(message);
       logCallback?.call(message);
     }
 
-    // 处理每个启用的项目项（可能是目录或文件）
+    // 主循环处理启用的根项目
     for (final item in enabledItems) {
       try {
         final itemPath = item.path ?? '';
-
-        // 检查是否被排除
-        if (item.isExclude == true) {
-          log('跳过排除项: ${item.name} (${itemPath})');
-          stats.skippedFilesIgnored++;
-          continue;
-        }
+        
+        // isExclude 已在 Controller 中过滤，这里无需再检查
 
         final itemFile = File(itemPath);
         final itemDirectory = Directory(itemPath);
 
-        // 检查是文件还是目录
         if (await itemFile.exists()) {
           // 处理单个文件（无视过滤规则，必然引入）
           log('处理文件: ${item.name} (${itemPath})');
@@ -252,7 +240,7 @@ class XmlMerger {
           log('检查目录: ${item.name} (${itemPath})');
 
           // 检查目录是否只包含空文件夹
-          final isOnlyEmptyFolders = await _isDirectoryOnlyEmptyFolders(itemDirectory, excludePaths);
+          final isOnlyEmptyFolders = await _isDirectoryOnlyEmptyFolders(itemDirectory, allItemsMap);
           if (isOnlyEmptyFolders) {
             log('跳过空目录: ${item.name} (只包含空文件夹)');
             stats.skippedDirs++;
@@ -264,15 +252,14 @@ class XmlMerger {
           // 为每个根目录创建一个 <dir> 元素
           buffer.writeln('  <dir name="${_escapeXmlAttribute(item.name ?? '')}">');
 
-          // 递归处理目录内容
+          // **修改**: 调用递归函数时传入 allItemsMap
           await _processDirectoryRecursive(
             itemDirectory,
             buffer,
-            2,
-            // 缩进级别 2（在 project > dir 内）
+            2, // 缩进级别
             stats,
             log,
-            excludePaths,
+            allItemsMap, // <-- 传入Map
             mergedFilePaths,
           );
 
@@ -322,14 +309,16 @@ class XmlMerger {
   /// 检查目录是否只包含空文件夹（递归检查）
   static Future<bool> _isDirectoryOnlyEmptyFolders(
     Directory dir,
-    Set<String> excludePaths,
+    Map<String, ProjectItem> allItemsMap,
   ) async {
     try {
       await for (final entity in dir.list()) {
         final entityPath = entity.path;
 
-        // 跳过排除的路径
-        if (excludePaths.contains(entityPath)) {
+        // 检查此路径是否是一个显式的 ProjectItem
+        final explicitItem = allItemsMap[entityPath];
+        if (explicitItem != null) {
+          // 如果一个路径在 items 列表中有显式条目，跳过它
           continue;
         }
 
@@ -346,7 +335,7 @@ class XmlMerger {
           }
         } else if (entity is Directory) {
           // 递归检查子目录
-          final hasValidContent = await _isDirectoryOnlyEmptyFolders(entity, excludePaths);
+          final hasValidContent = await _isDirectoryOnlyEmptyFolders(entity, allItemsMap);
           if (!hasValidContent) {
             return false; // 子目录包含有效内容
           }
@@ -366,7 +355,7 @@ class XmlMerger {
     int indentLevel,
     _MergeStats stats,
     Function(String) log,
-    Set<String> excludePaths,
+    Map<String, ProjectItem> allItemsMap, // <-- 接收Map
     List<String> mergedFilePaths,
   ) async {
     final List<Directory> subdirs = [];
@@ -377,19 +366,22 @@ class XmlMerger {
       await for (final entity in currentDir.list()) {
         final entityPath = entity.path;
 
-        // 检查是否在排除路径中
-        if (excludePaths.contains(entityPath)) {
-          if (entity is Directory) {
-            stats.skippedDirs++;
-            log('${_indent(indentLevel)}跳过排除目录: ${_getFileName(entityPath)}');
+        // **核心修改**: 检查此路径是否是一个显式的 ProjectItem
+        final explicitItem = allItemsMap[entityPath];
+        if (explicitItem != null) {
+          // 如果一个路径在 items 列表中有显式条目，
+          // 那么在递归扫描其父目录时就跳过它。
+          // 它将由 _generateXmlContent 的主循环根据其自身的 enabled 和 isExclude 状态决定如何处理。
+          if (explicitItem.isExclude ?? false) {
+               log('${_indent(indentLevel)}跳过显式排除的项: ${_getFileName(entityPath)}');
+               if (entity is Directory) stats.skippedDirs++; else stats.skippedFilesIgnored++;
           } else {
-            stats.skippedFilesIgnored++;
-            log('${_indent(indentLevel)}跳过排除文件: ${_getFileName(entityPath)}');
+               log('${_indent(indentLevel)}跳过显式定义的项: ${_getFileName(entityPath)} (将由主循环独立处理)');
           }
           continue;
         }
-
-        // 检查路径是否应该被忽略
+        
+        // 如果不是显式条目，则走通用规则
         if (shouldIgnorePath(entityPath)) {
           if (entity is Directory) {
             stats.skippedDirs++;
@@ -425,7 +417,7 @@ class XmlMerger {
       final dirName = _getFileName(subdir.path);
 
       // 检查目录是否只包含空文件夹
-      final isOnlyEmptyFolders = await _isDirectoryOnlyEmptyFolders(subdir, excludePaths);
+      final isOnlyEmptyFolders = await _isDirectoryOnlyEmptyFolders(subdir, allItemsMap);
       if (isOnlyEmptyFolders) {
         log('${_indent(indentLevel)}跳过空目录: $dirName (只包含空文件夹)');
         stats.skippedDirs++;
@@ -435,13 +427,14 @@ class XmlMerger {
       log('${_indent(indentLevel)}处理目录: $dirName');
       buffer.writeln('${_indent(indentLevel)}<dir name="${_escapeXmlAttribute(dirName)}">');
 
+      // **修改**: 递归调用时继续传递 allItemsMap
       await _processDirectoryRecursive(
         subdir,
         buffer,
         indentLevel + 1,
         stats,
         log,
-        excludePaths,
+        allItemsMap, // <-- 传递Map
         mergedFilePaths,
       );
 
