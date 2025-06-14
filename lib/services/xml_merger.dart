@@ -29,6 +29,7 @@ class XmlMerger {
     '.rs',
     ".sh",
     ".cnf",
+    '.proto',
   };
 
   // 特殊文件模式（与 C++ 版本保持一致）
@@ -143,13 +144,14 @@ class XmlMerger {
   }
 
   /// 生成 XML 内容（处理目录列表）
-  static Future<MergeResult> _generateXmlContent(Project project, List<ProjectItem> enabledItems, Function(String)? logCallback) async {
+  static Future<MergeResult> _generateXmlContent(
+      Project project, List<ProjectItem> enabledItems, Function(String)? logCallback) async {
     final buffer = StringBuffer();
 
     // XML 头部
     buffer.writeln('<?xml version="1.0" encoding="UTF-8"?>');
-    buffer.writeln('<project name="${_escapeXmlAttribute(project.name ?? '')}" output_path="${_escapeXmlAttribute(project.outputPath ?? '')}">');
-
+    buffer.writeln(
+        '<project name="${_escapeXmlAttribute(project.name ?? '')}" output_path="${_escapeXmlAttribute(project.outputPath ?? '')}">');
     // 使用对象来包装统计变量，以便在递归中正确传递引用
     final stats = _MergeStats();
 
@@ -208,7 +210,8 @@ class XmlMerger {
             continue;
           }
 
-          buffer.writeln('  <file name="${_escapeXmlAttribute(item.name ?? '')}" path="${_escapeXmlAttribute(itemPath)}">');
+          buffer.writeln(
+              '  <file name="${_escapeXmlAttribute(item.name ?? '')}" path="${_escapeXmlAttribute(itemPath)}">');
           buffer.writeln('    <![CDATA[');
 
           // 处理内容

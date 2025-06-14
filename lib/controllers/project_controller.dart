@@ -469,7 +469,7 @@ class ProjectController extends GetxController {
     }
 
     // 2. 提取文件夹名作为项目名，并检查是否重复
-    final projectName = filePath.split(RegExp(r'[/\]')).last;
+    final projectName = filePath.split(RegExp(r'[/\\]')).last; // Fixed RegExp
     final isDuplicate = projects.any((p) => p.name == projectName);
     if (isDuplicate) {
       Get.snackbar('创建失败', '名为 "$projectName" 的项目已存在。');
