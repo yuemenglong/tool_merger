@@ -165,6 +165,7 @@ class ProjectController extends GetxController {
     if (selectedProject.value == null) return;
     ext.enabled = !ext.enabled;
     selectedProject.value!.updateTime = DateTime.now();
+    selectedProject.refresh(); // 触发selectedProject的响应式更新
     projects.refresh();
     await saveProjects();
   }
@@ -187,6 +188,7 @@ class ProjectController extends GetxController {
     selectedProject.value!.targetExt?.add(TargetExtension(ext: processedExt, enabled: true));
     selectedProject.value!.targetExt?.sort((a, b) => a.ext.compareTo(b.ext));
     selectedProject.value!.updateTime = DateTime.now();
+    selectedProject.refresh(); // 触发selectedProject的响应式更新
     projects.refresh();
     await saveProjects();
     Get.snackbar('成功', '已添加后缀 "$processedExt"');
@@ -197,6 +199,7 @@ class ProjectController extends GetxController {
     if (selectedProject.value == null) return;
     selectedProject.value!.targetExt?.remove(ext);
     selectedProject.value!.updateTime = DateTime.now();
+    selectedProject.refresh(); // 触发selectedProject的响应式更新
     projects.refresh();
     await saveProjects();
   }
@@ -206,6 +209,7 @@ class ProjectController extends GetxController {
     if (selectedProject.value == null) return;
     _populateDefaultExtensions(selectedProject.value!);
     selectedProject.value!.updateTime = DateTime.now();
+    selectedProject.refresh(); // 触发selectedProject的响应式更新
     projects.refresh();
     await saveProjects();
     Get.snackbar('成功', '已重置为默认后缀列表');
