@@ -10,6 +10,7 @@ import 'dialogs.dart';
 import 'controllers/project_controller.dart';
 import 'config.dart';
 import 'utils/path_utils.dart';
+import 'utils/file_explorer_utils.dart';
 
 void main() {
   runApp(const MyApp());
@@ -994,28 +995,8 @@ class ToolMergerHomePage extends StatelessWidget {
           color: Colors.blue.shade700,
           tooltip: '在文件夹中显示', // 提示文本
           onPressed: () async {
-            final path = item.path;
-            if (path == null || path.isEmpty) {
-              Get.snackbar('错误', '项目路径无效',
-                  snackPosition: SnackPosition.BOTTOM);
-              return;
-            }
-
-            // 确认路径存在
-            final pathExists = await FileSystemEntity.type(path) != FileSystemEntityType.notFound;
-            if (!pathExists) {
-              Get.snackbar('错误', '路径不存在: $path',
-                  snackPosition: SnackPosition.BOTTOM);
-              return;
-            }
-
-            try {
-              // 直接执行 Windows explorer 命令
-              await Process.run('explorer.exe', ['/select,', path]);
-            } catch (e) {
-              Get.snackbar('操作失败', '无法打开路径: $e',
-                  snackPosition: SnackPosition.BOTTOM);
-            }
+            // 直接调用重构后的工具函数
+            await FileExplorerUtils.openInExplorer(item.path);
           },
         ),
       ),
@@ -1409,6 +1390,17 @@ class _SortableFileStatusDialogState extends State<SortableFileStatusDialog> {
                           _buildSortableHeader('后缀', 1, flex: 1),
                           _buildSortableHeader('行数', 2, flex: 1),
                           _buildSortableHeader('文件大小', 3, flex: 1),
+                          // 新增操作列的表头
+                          Expanded(
+                            flex: 2, // 分配2个弹性空间
+                            child: Container(
+                              alignment: Alignment.center,
+                              child: const Text(
+                                '操作',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -1472,6 +1464,38 @@ class _SortableFileStatusDialogState extends State<SortableFileStatusDialog> {
                                       _formatFileSize(fileStatus.fileSize ?? 0),
                                       style: const TextStyle(fontSize: 13),
                                     ),
+                                  ),
+                                ),
+                                // 新增：操作按钮列
+                                Expanded(
+                                  flex: 2,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      // 按钮1: 在文件夹中打开
+                                      IconButton(
+                                        icon: const Icon(Icons.folder_open),
+                                        iconSize: 18.0,
+                                        color: Colors.blue.shade700,
+                                        tooltip: '在文件夹中显示',
+                                        onPressed: () {
+                                          FileExplorerUtils.openInExplorer(fileStatus.fullPath);
+                                        },
+                                      ),
+                                      const SizedBox(width: 8),
+                                      // 按钮2: 添加到当前项目
+                                      IconButton(
+                                        icon: const Icon(Icons.add_to_photos),
+                                        iconSize: 18.0,
+                                        color: Colors.green.shade700,
+                                        tooltip: '添加到当前项目',
+                                        onPressed: () {
+                                          // 获取Controller实例并调用新方法
+                                          final controller = Get.find<ProjectController>();
+                                          controller.addItemFromFileStatus(fileStatus);
+                                        },
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],

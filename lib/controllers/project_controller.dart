@@ -587,6 +587,47 @@ class ProjectController extends GetxController {
     Get.snackbar('成功', '项目 "$projectName" 已通过拖拽快速创建。');
   }
 
+  /// 从 FileStatusInfo 对象添加一个新的项目项
+  Future<void> addItemFromFileStatus(FileStatusInfo fileStatus) async {
+    // 1. 检查是否有选中的项目
+    if (selectedProject.value == null) {
+      Get.snackbar('操作失败', '请先选择一个项目。');
+      return;
+    }
+
+    final filePath = fileStatus.fullPath;
+    if (filePath == null || filePath.isEmpty) {
+      Get.snackbar('错误', '无效的文件路径。');
+      return;
+    }
+
+    // 2. 检查项目是否已存在
+    final exists = currentItems.any((item) => item.path == filePath);
+    if (exists) {
+      Get.snackbar('提示', '该文件已存在于当前项目中。');
+      return;
+    }
+
+    // 3. 创建新的 ProjectItem
+    final fileName = filePath.split(RegExp(r'[/\\]')).last;
+    final newItem = ProjectItem(
+      name: fileName,
+      path: filePath,
+      enabled: true, // 默认启用
+      sortOrder: currentItems.length,
+      isExclude: false, // 默认包含
+    );
+
+    // 4. 添加到列表并保存
+    currentItems.add(newItem);
+    selectedProject.value!.items = currentItems.toList();
+    selectedProject.value!.updateTime = DateTime.now();
+    await saveProjects();
+
+    // 5. 提供用户反馈
+    Get.snackbar('成功', '文件 "$fileName" 已添加到当前项目。');
+  }
+
   // 生成项目合并文件
   Future<void> generateProject([Project? targetProject]) async {
     // 检查是否正在生成
