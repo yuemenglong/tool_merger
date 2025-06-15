@@ -405,6 +405,8 @@ class ToolMergerHomePage extends StatelessWidget {
           const SizedBox(height: 8),
           _buildCreateButton(context, controller),
           const SizedBox(height: 4),
+          _buildSettingsButton(context, controller), // 新增设置按钮
+          const SizedBox(height: 4),
           _buildDeleteProjectButton(context, controller),
           const SizedBox(height: 4),
           _buildMoveUpProjectButton(context, controller),
@@ -417,6 +419,20 @@ class ToolMergerHomePage extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  // 新增：后缀设置按钮
+  Widget _buildSettingsButton(BuildContext context, ProjectController controller) {
+    return Obx(() => _buildActionButton(
+      icon: Icons.settings,
+      label: 'Settings',
+      onPressed: controller.selectedProject.value != null
+          ? () {
+              controller.openExtensionSettings();
+            }
+          : null,
+      color: Colors.orange,
+    ));
   }
 
   Widget _buildGenerateButton(BuildContext context, ProjectController controller) {

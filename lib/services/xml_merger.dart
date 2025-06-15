@@ -4,7 +4,8 @@ import '../entity/entity.dart';
 
 class XmlMerger {
   // 代码文件扩展名（与 C++ 版本保持一致）
-  static const Set<String> _targetExt = {
+  // 公开默认后缀集合
+  static const Set<String> targetExt = {
     '.c',
     '.cpp',
     '.h',
@@ -54,10 +55,10 @@ class XmlMerger {
   // 反忽略模式（与 C++ 版本保持一致）
   static const List<String> _antiIgnorePatterns = ['.cursor'];
 
-  /// 检查文件是否为代码文件（通过扩展名）
-  static bool isCodeFile(String filePath) {
+  /// 检查文件是否为代码文件（通过扩展名和启用的后缀集合）
+  static bool isCodeFile(String filePath, Set<String> enabledExtensions) {
     final extension = _getFileExtension(filePath).toLowerCase();
-    return _targetExt.contains(extension);
+    return enabledExtensions.contains(extension);
   }
 
   /// 检查文件是否为特殊文件（如 README, CMakeLists 等）
@@ -97,15 +98,13 @@ class XmlMerger {
   }
 
   /// 检查文件是否应该被包含（代码文件或特殊文件，且不在忽略列表中）
-  static bool shouldIncludeFile(String filePath) {
+  static bool shouldIncludeFile(String filePath, Set<String> enabledExtensions) {
     if (shouldIgnorePath(filePath)) {
       return false;
     }
 
     final fileName = _getFileName(filePath);
-    final extension = _getFileExtension(filePath);
-
-    return isCodeFile(filePath) || isSpecialFile(fileName);
+    return isCodeFile(filePath, enabledExtensions) || isSpecialFile(fileName);
   }
 
   /// 获取文件扩展名
@@ -141,11 +140,22 @@ class XmlMerger {
       throw Exception('没有启用的目录');
     }
 
-    return await _generateXmlContent(project, enabledItems, logCallback);
+    // 从 project.targetExt 提取启用的后缀
+    final enabledExtensions = project.targetExt
+            ?.where((ext) => ext.enabled)
+            .map((ext) => ext.ext.toLowerCase())
+            .toSet() ??
+        {};
+
+    return await _generateXmlContent(project, enabledItems, logCallback, enabledExtensions);
   }
 
   /// 生成 XML 内容（处理目录列表）
-  static Future<MergeResult> _generateXmlContent(Project project, List<ProjectItem> enabledItems, Function(String)? logCallback) async {
+  static Future<MergeResult> _generateXmlContent(
+      Project project,
+      List<ProjectItem> enabledItems,
+      Function(String)? logCallback,
+      Set<String> enabledExtensions) async {
     final buffer = StringBuffer();
 
     // XML 头部
@@ -238,7 +248,7 @@ class XmlMerger {
           log('检查目录: ${item.name} (${itemPath})');
 
           // 检查目录是否只包含空文件夹
-          final isOnlyEmptyFolders = await _isDirectoryOnlyEmptyFolders(itemDirectory, allItemsMap);
+          final isOnlyEmptyFolders = await _isDirectoryOnlyEmptyFolders(itemDirectory, allItemsMap, enabledExtensions);
           if (isOnlyEmptyFolders) {
             log('跳过空目录: ${item.name} (只包含空文件夹)');
             stats.skippedDirs++;
@@ -250,7 +260,7 @@ class XmlMerger {
           // 为每个根目录创建一个 <dir> 元素
           buffer.writeln('  <dir name="${_escapeXmlAttribute(item.name ?? '')}">');
 
-          // **修改**: 调用递归函数时传入 allItemsMap
+          // **修改**: 调用递归函数时传入 allItemsMap 和 enabledExtensions
           await _processDirectoryRecursive(
             itemDirectory,
             buffer,
@@ -259,8 +269,8 @@ class XmlMerger {
             stats,
             log,
             allItemsMap,
-            // <-- 传入Map
             mergedFilePaths,
+            enabledExtensions,
           );
 
           buffer.writeln('  </dir>');
@@ -310,6 +320,7 @@ class XmlMerger {
   static Future<bool> _isDirectoryOnlyEmptyFolders(
     Directory dir,
     Map<String, ProjectItem> allItemsMap,
+    Set<String> enabledExtensions,
   ) async {
     try {
       await for (final entity in dir.list()) {
@@ -330,12 +341,12 @@ class XmlMerger {
         if (entity is File) {
           // 如果找到任何文件，检查是否为代码文件或特殊文件
           final fileName = _getFileName(entity.path);
-          if (isCodeFile(entity.path) || isSpecialFile(fileName)) {
+          if (isCodeFile(entity.path, enabledExtensions) || isSpecialFile(fileName)) {
             return false; // 找到了有效文件，不是空文件夹
           }
         } else if (entity is Directory) {
           // 递归检查子目录
-          final hasValidContent = await _isDirectoryOnlyEmptyFolders(entity, allItemsMap);
+          final hasValidContent = await _isDirectoryOnlyEmptyFolders(entity, allItemsMap, enabledExtensions);
           if (!hasValidContent) {
             return false; // 子目录包含有效内容
           }
@@ -355,8 +366,9 @@ class XmlMerger {
     int indentLevel,
     _MergeStats stats,
     Function(String) log,
-    Map<String, ProjectItem> allItemsMap, // <-- 接收Map
+    Map<String, ProjectItem> allItemsMap,
     List<String> mergedFilePaths,
+    Set<String> enabledExtensions,
   ) async {
     final List<Directory> subdirs = [];
     final List<File> files = [];
@@ -420,7 +432,7 @@ class XmlMerger {
       final dirName = _getFileName(subdir.path);
 
       // 检查目录是否只包含空文件夹
-      final isOnlyEmptyFolders = await _isDirectoryOnlyEmptyFolders(subdir, allItemsMap);
+      final isOnlyEmptyFolders = await _isDirectoryOnlyEmptyFolders(subdir, allItemsMap, enabledExtensions);
       if (isOnlyEmptyFolders) {
         log('${_indent(indentLevel)}跳过空目录: $dirName (只包含空文件夹)');
         stats.skippedDirs++;
@@ -438,8 +450,8 @@ class XmlMerger {
         stats,
         log,
         allItemsMap,
-        // <-- 传递Map
         mergedFilePaths,
+        enabledExtensions,
       );
 
       buffer.writeln('${_indent(indentLevel)}</dir>');
@@ -451,7 +463,7 @@ class XmlMerger {
       final extension = _getFileExtension(file.path);
 
       // 检查是否为代码文件或特殊文件（与 C++ 版本逻辑一致）
-      if (isCodeFile(file.path) || isSpecialFile(fileName)) {
+      if (isCodeFile(file.path, enabledExtensions) || isSpecialFile(fileName)) {
         log('${_indent(indentLevel)}处理文件: $fileName');
 
         try {

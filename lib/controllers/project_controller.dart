@@ -9,6 +9,8 @@ import '../entity/entity.dart';
 import '../services/xml_merger.dart';
 import '../utils/windows_clipboard.dart';
 
+import '../views/extension_settings_page.dart';
+
 class ProjectController extends GetxController {
   // 响应式变量
   final RxList<Project> projects = <Project>[].obs;
@@ -52,6 +54,18 @@ class ProjectController extends GetxController {
         final jsonString = await file.readAsString();
         final List<dynamic> jsonList = json.decode(jsonString);
         projects.value = jsonList.map((json) => Project.fromJson(json)).toList();
+
+        // 数据迁移逻辑：为旧项目填充 targetExt
+        bool needsSave = false;
+        for (var project in projects) {
+          if (project.targetExt == null || project.targetExt!.isEmpty) {
+            _populateDefaultExtensions(project);
+            needsSave = true;
+          }
+        }
+        if (needsSave) {
+          await saveProjects();
+        }
       } else {
         // 如果文件不存在，创建示例数据
         _createSampleData();
@@ -131,6 +145,72 @@ class ProjectController extends GetxController {
     outputPath.value = project.outputPath ?? '';
   }
 
+  // 为项目填充默认后缀列表
+  void _populateDefaultExtensions(Project project) {
+    project.targetExt = XmlMerger.targetExt
+        .map((ext) => TargetExtension(ext: ext, enabled: true))
+        .toList();
+    project.targetExt?.sort((a, b) => a.ext.compareTo(b.ext));
+  }
+
+  // 打开后缀设置页面
+  void openExtensionSettings() {
+    if (selectedProject.value != null) {
+      Get.to(() => const ExtensionSettingsPage());
+    }
+  }
+
+  // 切换后缀启用状态
+  Future<void> toggleExtension(TargetExtension ext) async {
+    if (selectedProject.value == null) return;
+    ext.enabled = !ext.enabled;
+    selectedProject.value!.updateTime = DateTime.now();
+    projects.refresh();
+    await saveProjects();
+  }
+
+  // 添加新后缀
+  Future<void> addExtension(String newExt) async {
+    if (selectedProject.value == null || newExt.trim().isEmpty) return;
+
+    String processedExt = newExt.trim().toLowerCase();
+    if (!processedExt.startsWith('.')) {
+      processedExt = '.$processedExt';
+    }
+
+    final exists = selectedProject.value!.targetExt?.any((e) => e.ext == processedExt) ?? false;
+    if (exists) {
+      Get.snackbar('错误', '后缀 "$processedExt" 已存在');
+      return;
+    }
+
+    selectedProject.value!.targetExt?.add(TargetExtension(ext: processedExt, enabled: true));
+    selectedProject.value!.targetExt?.sort((a, b) => a.ext.compareTo(b.ext));
+    selectedProject.value!.updateTime = DateTime.now();
+    projects.refresh();
+    await saveProjects();
+    Get.snackbar('成功', '已添加后缀 "$processedExt"');
+  }
+
+  // 删除后缀
+  Future<void> deleteExtension(TargetExtension ext) async {
+    if (selectedProject.value == null) return;
+    selectedProject.value!.targetExt?.remove(ext);
+    selectedProject.value!.updateTime = DateTime.now();
+    projects.refresh();
+    await saveProjects();
+  }
+
+  // 重置为默认后缀
+  Future<void> resetExtensionsToDefault() async {
+    if (selectedProject.value == null) return;
+    _populateDefaultExtensions(selectedProject.value!);
+    selectedProject.value!.updateTime = DateTime.now();
+    projects.refresh();
+    await saveProjects();
+    Get.snackbar('成功', '已重置为默认后缀列表');
+  }
+
   // 创建项目
   Future<void> createProject(String name) async {
     final newProject = Project(
@@ -141,11 +221,13 @@ class ProjectController extends GetxController {
       updateTime: DateTime.now(),
       items: [],
     );
-    
+
+    _populateDefaultExtensions(newProject);
+
     projects.add(newProject);
     await saveProjects();
     selectProject(newProject);
-    
+
     Get.snackbar('成功', '项目 "$name" 创建成功');
   }
 

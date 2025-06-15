@@ -3,6 +3,7 @@ class Project {
   String? outputPath;
   int? sortOrder;
   List<ProjectItem>? items;
+  List<TargetExtension>? targetExt; // 新增字段
   DateTime? createTime;
   DateTime? updateTime;
 
@@ -11,6 +12,7 @@ class Project {
     this.outputPath,
     this.sortOrder,
     this.items,
+    this.targetExt, // 新增
     this.createTime,
     this.updateTime,
   });
@@ -25,6 +27,13 @@ class Project {
         items!.add(ProjectItem.fromJson(v));
       });
     }
+    // 解析 targetExt
+    if (json['targetExt'] != null) {
+      targetExt = <TargetExtension>[];
+      json['targetExt'].forEach((v) {
+        targetExt!.add(TargetExtension.fromJson(v));
+      });
+    }
     createTime = json['createTime'] != null ? DateTime.parse(json['createTime']) : null;
     updateTime = json['updateTime'] != null ? DateTime.parse(json['updateTime']) : null;
   }
@@ -37,8 +46,34 @@ class Project {
     if (items != null) {
       data['items'] = items!.map((v) => v.toJson()).toList();
     }
+    // 序列化 targetExt
+    if (targetExt != null) {
+      data['targetExt'] = targetExt!.map((v) => v.toJson()).toList();
+    }
     data['createTime'] = createTime?.toIso8601String();
     data['updateTime'] = updateTime?.toIso8601String();
+    return data;
+  }
+}
+
+// 新增：目标文件后缀实体
+class TargetExtension {
+  String ext;
+  bool enabled;
+
+  TargetExtension({
+    required this.ext,
+    required this.enabled,
+  });
+
+  TargetExtension.fromJson(Map<String, dynamic> json)
+      : ext = json['ext'],
+        enabled = json['enabled'];
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['ext'] = ext;
+    data['enabled'] = enabled;
     return data;
   }
 }
