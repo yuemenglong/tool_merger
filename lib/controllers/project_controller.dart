@@ -739,8 +739,8 @@ class ProjectController extends GetxController {
       logBuffer.writeln('项目项配置:');
       if (project.items != null && project.items!.isNotEmpty) {
         logBuffer.writeln('  - 总数: ${project.items!.length}');
-        final enabledItems = project.items!.where((item) => item.enabled);
-        final disabledItems = project.items!.where((item) => !item.enabled);
+        final enabledItems = project.items!.where((item) => item.enabled == true);
+        final disabledItems = project.items!.where((item) => item.enabled != true);
         logBuffer.writeln('  - 启用: ${enabledItems.length} 个');
         logBuffer.writeln('  - 禁用: ${disabledItems.length} 个');
         
