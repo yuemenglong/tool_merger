@@ -4,7 +4,7 @@ import '../entity/entity.dart';
 
 class XmlMerger {
   // 代码文件扩展名（与 C++ 版本保持一致）
-  static const Set<String> _codeExtensions = {
+  static const Set<String> _targetExt = {
     '.c',
     '.cpp',
     '.h',
@@ -30,10 +30,11 @@ class XmlMerger {
     ".sh",
     ".cnf",
     '.proto',
+    ".md"
   };
 
   // 特殊文件模式（与 C++ 版本保持一致）
-  static const List<String> _specialFilePatterns = ['cmakelists.txt', 'readme.md', 'readme.txt', "Dockerfile"];
+  static const List<String> _specialFilePatterns = ['cmakelists.txt', 'readme.txt', "Dockerfile"];
 
   // 忽略的路径模式（与 C++ 版本保持一致）
   static const List<String> _ignorePatterns = [
@@ -56,7 +57,7 @@ class XmlMerger {
   /// 检查文件是否为代码文件（通过扩展名）
   static bool isCodeFile(String filePath) {
     final extension = _getFileExtension(filePath).toLowerCase();
-    return _codeExtensions.contains(extension);
+    return _targetExt.contains(extension);
   }
 
   /// 检查文件是否为特殊文件（如 README, CMakeLists 等）
@@ -144,15 +145,13 @@ class XmlMerger {
   }
 
   /// 生成 XML 内容（处理目录列表）
-  static Future<MergeResult> _generateXmlContent(
-      Project project, List<ProjectItem> enabledItems, Function(String)? logCallback) async {
+  static Future<MergeResult> _generateXmlContent(Project project, List<ProjectItem> enabledItems, Function(String)? logCallback) async {
     final buffer = StringBuffer();
 
     // XML 头部
     buffer.writeln('<?xml version="1.0" encoding="UTF-8"?>');
-    buffer.writeln(
-        '<project name="${_escapeXmlAttribute(project.name ?? '')}" output_path="${_escapeXmlAttribute(project.outputPath ?? '')}">');
-    
+    buffer.writeln('<project name="${_escapeXmlAttribute(project.name ?? '')}" output_path="${_escapeXmlAttribute(project.outputPath ?? '')}">');
+
     final stats = _MergeStats();
     final mergedFilePaths = <String>[];
 
@@ -171,7 +170,7 @@ class XmlMerger {
     for (final item in enabledItems) {
       try {
         final itemPath = item.path ?? '';
-        
+
         // isExclude 已在 Controller 中过滤，这里无需再检查
 
         final itemFile = File(itemPath);
@@ -198,8 +197,7 @@ class XmlMerger {
             continue;
           }
 
-          buffer.writeln(
-              '  <file name="${_escapeXmlAttribute(item.name ?? '')}" path="${_escapeXmlAttribute(itemPath)}">');
+          buffer.writeln('  <file name="${_escapeXmlAttribute(item.name ?? '')}" path="${_escapeXmlAttribute(itemPath)}">');
           buffer.writeln('    <![CDATA[');
 
           // 处理内容
@@ -256,10 +254,12 @@ class XmlMerger {
           await _processDirectoryRecursive(
             itemDirectory,
             buffer,
-            2, // 缩进级别
+            2,
+            // 缩进级别
             stats,
             log,
-            allItemsMap, // <-- 传入Map
+            allItemsMap,
+            // <-- 传入Map
             mergedFilePaths,
           );
 
@@ -373,14 +373,17 @@ class XmlMerger {
           // 那么在递归扫描其父目录时就跳过它。
           // 它将由 _generateXmlContent 的主循环根据其自身的 enabled 和 isExclude 状态决定如何处理。
           if (explicitItem.isExclude ?? false) {
-               log('${_indent(indentLevel)}跳过显式排除的项: ${_getFileName(entityPath)}');
-               if (entity is Directory) stats.skippedDirs++; else stats.skippedFilesIgnored++;
+            log('${_indent(indentLevel)}跳过显式排除的项: ${_getFileName(entityPath)}');
+            if (entity is Directory)
+              stats.skippedDirs++;
+            else
+              stats.skippedFilesIgnored++;
           } else {
-               log('${_indent(indentLevel)}跳过显式定义的项: ${_getFileName(entityPath)} (将由主循环独立处理)');
+            log('${_indent(indentLevel)}跳过显式定义的项: ${_getFileName(entityPath)} (将由主循环独立处理)');
           }
           continue;
         }
-        
+
         // 如果不是显式条目，则走通用规则
         if (shouldIgnorePath(entityPath)) {
           if (entity is Directory) {
@@ -434,7 +437,8 @@ class XmlMerger {
         indentLevel + 1,
         stats,
         log,
-        allItemsMap, // <-- 传递Map
+        allItemsMap,
+        // <-- 传递Map
         mergedFilePaths,
       );
 
