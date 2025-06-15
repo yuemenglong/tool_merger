@@ -135,9 +135,9 @@ class XmlMerger {
       throw Exception('项目中没有目录');
     }
 
-    final enabledItems = project.items!.where((item) => item.enabled == true).toList();
+    final enabledItems = project.items!.where((item) => item.enabled == true && (item.isExclude ?? false) == false).toList();
     if (enabledItems.isEmpty) {
-      throw Exception('没有启用的目录');
+      throw Exception('没有启用的包含项目');
     }
 
     // 从 project.targetExt 提取启用的后缀

@@ -746,13 +746,15 @@ class ProjectController extends GetxController {
         
         logBuffer.writeln('  - 启用的项目项:');
         for (final item in enabledItems) {
-          logBuffer.writeln('    * ${item.name} -> ${item.path}');
+          final includeExclude = (item.isExclude ?? false) ? '[exclude]' : '[include]';
+          logBuffer.writeln('    * ${item.name} -> ${item.path} $includeExclude');
         }
         
         if (disabledItems.isNotEmpty) {
           logBuffer.writeln('  - 禁用的项目项:');
           for (final item in disabledItems) {
-            logBuffer.writeln('    * ${item.name} -> ${item.path} (disabled)');
+            final includeExclude = (item.isExclude ?? false) ? '[exclude]' : '[include]';
+            logBuffer.writeln('    * ${item.name} -> ${item.path} $includeExclude (disabled)');
           }
         }
       } else {
