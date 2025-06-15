@@ -1246,7 +1246,7 @@ class ToolMergerHomePage extends StatelessWidget {
           width: dialogWidth,
           height: dialogHeight,
           child: SingleChildScrollView(
-            child: Text(
+            child: SelectableText(
               controller.lastGenerateLog.value,
               style: const TextStyle(fontFamily: 'monospace'),
             ),
