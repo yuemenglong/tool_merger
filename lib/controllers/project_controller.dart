@@ -702,6 +702,65 @@ class ProjectController extends GetxController {
       logBuffer.writeln('  - 目录数: $totalDirs');
       logBuffer.writeln('');
       
+      // === 打印Project属性信息 ===
+      logBuffer.writeln('=== Project Properties Debug Info ===');
+      logBuffer.writeln('项目基本信息:');
+      logBuffer.writeln('  - 项目名称: ${project.name}');
+      logBuffer.writeln('  - 输出路径: ${project.outputPath}');
+      logBuffer.writeln('  - 创建时间: ${project.createTime}');
+      logBuffer.writeln('  - 更新时间: ${project.updateTime}');
+      logBuffer.writeln('  - 排序序号: ${project.sortOrder}');
+      logBuffer.writeln('');
+      
+      logBuffer.writeln('目标后缀配置:');
+      if (project.targetExt != null && project.targetExt!.isNotEmpty) {
+        logBuffer.writeln('  - 总数: ${project.targetExt!.length}');
+        final enabledExts = project.targetExt!.where((ext) => ext.enabled);
+        final disabledExts = project.targetExt!.where((ext) => !ext.enabled);
+        logBuffer.writeln('  - 启用: ${enabledExts.length} 个');
+        logBuffer.writeln('  - 禁用: ${disabledExts.length} 个');
+        
+        logBuffer.writeln('  - 启用的后缀:');
+        for (final ext in enabledExts) {
+          logBuffer.writeln('    * ${ext.ext}');
+        }
+        
+        if (disabledExts.isNotEmpty) {
+          logBuffer.writeln('  - 禁用的后缀:');
+          for (final ext in disabledExts) {
+            logBuffer.writeln('    * ${ext.ext} (disabled)');
+          }
+        }
+      } else {
+        logBuffer.writeln('  - 无目标后缀配置');
+      }
+      logBuffer.writeln('');
+      
+      logBuffer.writeln('项目项配置:');
+      if (project.items != null && project.items!.isNotEmpty) {
+        logBuffer.writeln('  - 总数: ${project.items!.length}');
+        final enabledItems = project.items!.where((item) => item.enabled);
+        final disabledItems = project.items!.where((item) => !item.enabled);
+        logBuffer.writeln('  - 启用: ${enabledItems.length} 个');
+        logBuffer.writeln('  - 禁用: ${disabledItems.length} 个');
+        
+        logBuffer.writeln('  - 启用的项目项:');
+        for (final item in enabledItems) {
+          logBuffer.writeln('    * ${item.name} -> ${item.path}');
+        }
+        
+        if (disabledItems.isNotEmpty) {
+          logBuffer.writeln('  - 禁用的项目项:');
+          for (final item in disabledItems) {
+            logBuffer.writeln('    * ${item.name} -> ${item.path} (disabled)');
+          }
+        }
+      } else {
+        logBuffer.writeln('  - 无项目项配置');
+      }
+      logBuffer.writeln('===============================');
+      logBuffer.writeln('');
+      
       final mergeResult = await XmlMerger.mergeXml(project, logCallback: (message) {
         logBuffer.writeln(message);
       });
