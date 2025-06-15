@@ -9,11 +9,16 @@ class ExtensionSettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ProjectController controller = Get.find();
-    final TextEditingController addExtController = TextEditingController();
+    final TextEditingController filterController = TextEditingController();
 
     return Scaffold(
       appBar: _buildAppBar(controller),
-      body: _buildBody(controller, addExtController),
+      body: _buildBody(controller, filterController),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showAddExtensionDialog(controller),
+        child: const Icon(Icons.add),
+        tooltip: '添加新后缀',
+      ),
     );
   }
 
@@ -65,61 +70,134 @@ class ExtensionSettingsPage extends StatelessWidget {
   }
 
   /// 构建主体内容
-  Widget _buildBody(ProjectController controller, TextEditingController addExtController) {
+  Widget _buildBody(ProjectController controller, TextEditingController filterController) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
-          _buildAddExtensionRow(controller, addExtController),
+          _buildFilterRow(filterController),
           const SizedBox(height: 16),
           const Divider(),
           Expanded(
-            child: _buildExtensionsList(controller),
+            child: _buildExtensionsList(controller, filterController),
           ),
         ],
       ),
     );
   }
 
-  /// 构建添加后缀输入行
-  Widget _buildAddExtensionRow(ProjectController controller, TextEditingController addExtController) {
+  /// 构建过滤输入行
+  Widget _buildFilterRow(TextEditingController filterController) {
     return Row(
       children: [
         Expanded(
           child: TextField(
-            controller: addExtController,
+            controller: filterController,
             decoration: const InputDecoration(
-              labelText: '添加新后缀',
-              hintText: '例如: .xml 或 xml',
+              labelText: '过滤后缀',
+              hintText: '输入关键字过滤后缀列表',
               border: OutlineInputBorder(),
+              prefixIcon: Icon(Icons.search),
             ),
           ),
         ),
         const SizedBox(width: 8),
-        ElevatedButton(
-          onPressed: () => _handleAddExtension(controller, addExtController),
-          child: const Text('添加'),
+        IconButton(
+          onPressed: () => filterController.clear(),
+          icon: const Icon(Icons.clear),
+          tooltip: '清空过滤',
         ),
       ],
     );
   }
 
-  /// 处理添加后缀
-  Future<void> _handleAddExtension(ProjectController controller, TextEditingController addExtController) async {
-    await controller.addExtension(addExtController.text);
-    addExtController.clear();
+  /// 显示添加后缀对话框
+  Future<void> _showAddExtensionDialog(ProjectController controller) async {
+    final TextEditingController addExtController = TextEditingController();
+    
+    final result = await Get.dialog<bool>(
+      AlertDialog(
+        title: const Text('添加新后缀'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: addExtController,
+              decoration: const InputDecoration(
+                labelText: '后缀名称',
+                hintText: '例如: .xml 或 xml',
+                border: OutlineInputBorder(),
+              ),
+              autofocus: true,
+              onSubmitted: (value) async {
+                if (value.trim().isNotEmpty) {
+                  await controller.addExtension(value);
+                  Get.back(result: true);
+                }
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: const Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (addExtController.text.trim().isNotEmpty) {
+                await controller.addExtension(addExtController.text);
+                Get.back(result: true);
+              }
+            },
+            child: const Text('添加'),
+          ),
+        ],
+      ),
+    );
+    
+    if (result == true) {
+      addExtController.clear();
+    }
   }
 
   /// 构建后缀列表
-  Widget _buildExtensionsList(ProjectController controller) {
-    return Obx(() {
-      final extensions = controller.selectedProject.value?.targetExt ?? [];
-      if (extensions.isEmpty) {
-        return const Center(child: Text('没有可配置的后缀'));
-      }
-      
-      return _buildExtensionsGrid(extensions, controller);
-    });
+  Widget _buildExtensionsList(ProjectController controller, TextEditingController filterController) {
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: filterController,
+      builder: (context, value, child) {
+        return Obx(() {
+          final allExtensions = controller.selectedProject.value?.targetExt ?? [];
+          if (allExtensions.isEmpty) {
+            return const Center(child: Text('没有可配置的后缀'));
+          }
+          
+          // 应用过滤
+          final filterText = value.text.toLowerCase();
+          final filteredExtensions = filterText.isEmpty 
+              ? allExtensions
+              : allExtensions.where((ext) => ext.ext.toLowerCase().contains(filterText)).toList();
+          
+          if (filteredExtensions.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.search_off, size: 64, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  Text(
+                    '未找到包含 "$filterText" 的后缀',
+                    style: const TextStyle(color: Colors.grey, fontSize: 16),
+                  ),
+                ],
+              ),
+            );
+          }
+          
+          return _buildExtensionsGrid(filteredExtensions, controller);
+        });
+      },
+    );
   }
 
   /// 构建后缀网格布局

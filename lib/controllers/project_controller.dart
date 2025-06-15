@@ -654,52 +654,6 @@ class ProjectController extends GetxController {
       // 使用 XmlMerger 生成 XML 内容
       logBuffer.writeln('=== XML 生成过程 ===');
       logBuffer.writeln('开始调用 XmlMerger.mergeXml()...');
-      
-      // 记录每个启用项目项的处理过程
-      int processedCount = 0;
-      int totalFiles = 0;
-      int totalDirs = 0;
-      
-      for (final item in enabledItems) {
-        processedCount++;
-        logBuffer.writeln('[$processedCount/${enabledItems.length}] 处理项目项: ${item.name}');
-        logBuffer.writeln('  路径: ${item.path}');
-        
-        // 检查是文件还是目录
-        final entity = FileSystemEntity.typeSync(item.path ?? '');
-        if (entity == FileSystemEntityType.file) {
-          logBuffer.writeln('  类型: 文件');
-          totalFiles++;
-        } else if (entity == FileSystemEntityType.directory) {
-          logBuffer.writeln('  类型: 目录');
-          totalDirs++;
-          
-          // 如果是目录，扫描其中的文件
-          try {
-            final dir = Directory(item.path!);
-            final files = await dir.list(recursive: true).where((entity) => entity is File).toList();
-            logBuffer.writeln('  扫描到文件数: ${files.length}');
-            
-            // 显示前几个文件作为示例
-            final sampleFiles = files.take(3).toList();
-            for (final file in sampleFiles) {
-              logBuffer.writeln('    - ${file.path}');
-            }
-            if (files.length > 3) {
-              logBuffer.writeln('    ... 还有 ${files.length - 3} 个文件');
-            }
-          } catch (e) {
-            logBuffer.writeln('  扫描目录时出错: $e');
-          }
-        } else {
-          logBuffer.writeln('  类型: 未知或不存在');
-        }
-        logBuffer.writeln('');
-      }
-      
-      logBuffer.writeln('项目项处理完成:');
-      logBuffer.writeln('  - 文件数: $totalFiles');
-      logBuffer.writeln('  - 目录数: $totalDirs');
       logBuffer.writeln('');
       
       // === 打印Project属性信息 ===
@@ -815,8 +769,7 @@ class ProjectController extends GetxController {
       logBuffer.writeln('生成状态: 成功');
       logBuffer.writeln('处理统计:');
       logBuffer.writeln('  - 启用项目项: ${enabledItems.length}');
-      logBuffer.writeln('  - 文件项: $totalFiles');
-      logBuffer.writeln('  - 目录项: $totalDirs');
+      logBuffer.writeln('  - 合并文件: ${mergeResult.mergedFilePaths.length} 个');
       logBuffer.writeln('  - 输出文件: ${outputFile.path}');
       
       // 收集文件状态信息
