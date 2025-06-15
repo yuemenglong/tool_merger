@@ -70,21 +70,67 @@ class ExtensionSettingsPage extends StatelessWidget {
                 if (extensions.isEmpty) {
                   return const Center(child: Text('没有可配置的后缀'));
                 }
-                return ListView.builder(
-                  itemCount: extensions.length,
-                  itemBuilder: (context, index) {
-                    final TargetExtension ext = extensions[index];
-                    return CheckboxListTile(
-                      title: Text(ext.ext),
-                      value: ext.enabled,
-                      onChanged: (bool? value) async {
-                        await controller.toggleExtension(ext);
-                      },
-                      secondary: IconButton(
-                        icon: const Icon(Icons.delete_outline, color: Colors.red),
-                        onPressed: () async {
-                          await controller.deleteExtension(ext);
-                        },
+                
+                // 按4列布局
+                return LayoutBuilder(
+                  builder: (context, constraints) {
+                    const int columns = 4;
+                    final double itemWidth = (constraints.maxWidth - (columns - 1) * 8) / columns;
+                    final int rows = (extensions.length / columns).ceil();
+                    
+                    return SingleChildScrollView(
+                      child: Column(
+                        children: List.generate(rows, (rowIndex) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8.0),
+                            child: Row(
+                              children: List.generate(columns, (colIndex) {
+                                final int index = rowIndex * columns + colIndex;
+                                if (index >= extensions.length) {
+                                  return SizedBox(width: itemWidth);
+                                }
+                                
+                                final TargetExtension ext = extensions[index];
+                                return SizedBox(
+                                  width: itemWidth,
+                                  child: Padding(
+                                    padding: EdgeInsets.only(right: colIndex < columns - 1 ? 8.0 : 0),
+                                    child: Card(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Row(
+                                          children: [
+                                            Checkbox(
+                                              value: ext.enabled,
+                                              onChanged: (bool? value) async {
+                                                await controller.toggleExtension(ext);
+                                              },
+                                            ),
+                                            Expanded(
+                                              child: Text(
+                                                ext.ext,
+                                                style: const TextStyle(fontWeight: FontWeight.bold),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            IconButton(
+                                              icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18),
+                                              onPressed: () async {
+                                                await controller.deleteExtension(ext);
+                                              },
+                                              padding: EdgeInsets.zero,
+                                              constraints: const BoxConstraints(),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }),
+                            ),
+                          );
+                        }),
                       ),
                     );
                   },
