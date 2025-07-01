@@ -577,6 +577,9 @@ class ProjectController extends GetxController {
       items: [newItem], // 将文件夹作为唯一的item
     );
 
+    // 5.1. 为新项目填充默认后缀配置
+    _populateDefaultExtensions(newProject);
+
     // 6. 添加到列表、保存并提供用户反馈
     projects.add(newProject);
     await saveProjects();
