@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../controllers/project_controller.dart';
 import '../config.dart';
 import '../entity/entity.dart';
+import '../explorer/sftp_explorer_page.dart';
 import 'project_section_view.dart';
 import 'item_section_view.dart';
 
@@ -98,6 +99,16 @@ class ToolMergerHomePage extends StatelessWidget {
                 : null,
             icon: const Icon(Icons.delete, size: 18),
             tooltip: '删除SFTP根目录',
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            padding: const EdgeInsets.all(4),
+          )),
+          // 浏览按钮
+          Obx(() => IconButton(
+            onPressed: controller.selectedSftpRoot.value != null && controller.selectedSftpRoot.value!.enabled == true
+                ? () => _openSftpExplorer(context, controller.selectedSftpRoot.value!) 
+                : null,
+            icon: const Icon(Icons.folder_open, size: 18),
+            tooltip: '浏览SFTP文件',
             constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
             padding: const EdgeInsets.all(4),
           )),
@@ -324,6 +335,16 @@ class ToolMergerHomePage extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+
+  // 打开SFTP Explorer
+  void _openSftpExplorer(BuildContext context, SftpFileRoot sftpRoot) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const SftpExplorerPage(),
+        settings: RouteSettings(arguments: sftpRoot),
+      ),
     );
   }
 }

@@ -18,8 +18,27 @@ class _SftpExplorerPageState extends State<SftpExplorerPage> {
   @override
   void initState() {
     super.initState();
-    sftpController = Get.find<SftpController>();
+    // 尝试从不同的tag中获取SftpController
+    try {
+      sftpController = Get.find<SftpController>(tag: 'sftp');
+    } catch (e) {
+      // 如果没有找到带tag的，尝试不带tag的
+      try {
+        sftpController = Get.find<SftpController>();
+      } catch (e2) {
+        // 如果都没找到，创建一个新的
+        sftpController = Get.put(SftpController());
+      }
+    }
     explorerController = SftpExplorerController();
+    
+    // 检查是否有传入的SftpFileRoot参数
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final arguments = ModalRoute.of(context)?.settings.arguments;
+      if (arguments is SftpFileRoot) {
+        _connectToSftp(arguments);
+      }
+    });
   }
 
   @override
