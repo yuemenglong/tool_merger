@@ -22,37 +22,20 @@ class ProjectDataController extends GetxController {
 
   Future<void> loadProjects() async {
     try {
-      // 使用应用支持目录而非文档目录
       final directory = await getApplicationSupportDirectory();
-      
-      // 创建配置子目录
       final configDir = Directory('${directory.path}/config');
       if (!await configDir.exists()) {
         await configDir.create(recursive: true);
       }
       
-      final newFile = LocalFile.create('${configDir.path}/projects.json');
+      final file = LocalFile.create('${configDir.path}/projects.json');
       
-      // 打印配置文件路径信息
-      print('=== 项目配置文件路径信息 ===');
-      print('应用支持目录: ${directory.path}');
-      print('配置目录: ${configDir.path}');
-      print('项目配置文件: ${newFile.getPath()}');
-      print('配置目录是否存在: ${await configDir.exists()}');
-      print('配置文件是否存在: ${await newFile.isFile()}');
-      print('==============================');
-      
-      // 检查新位置是否存在配置文件
-      if (await newFile.isFile()) {
-        print('从新位置加载项目配置文件');
-        await _loadProjectsFromFile(newFile);
+      if (await file.isFile()) {
+        await _loadProjectsFromFile(file);
       } else {
-        print('新位置无项目配置文件，尝试迁移');
-        // 尝试从旧位置迁移配置文件
-        await _migrateProjectsFromOldLocation(newFile);
+        _createSampleData();
       }
     } catch (e) {
-      print('加载项目配置时出错: $e');
       Get.snackbar('错误', '加载项目失败: $e');
       _createSampleData();
     }
@@ -76,44 +59,6 @@ class ProjectDataController extends GetxController {
     }
   }
 
-  Future<void> _migrateProjectsFromOldLocation(LocalFile newFile) async {
-    try {
-      // 检查旧位置的配置文件
-      final documentsDirectory = await getApplicationDocumentsDirectory();
-      final oldFile = LocalFile.create('${documentsDirectory.path}/projects.json');
-      
-      print('检查旧项目配置文件: ${oldFile.getPath()}');
-      print('旧项目配置文件是否存在: ${await oldFile.isFile()}');
-      
-      if (await oldFile.isFile()) {
-        print('发现旧项目配置文件，开始迁移...');
-        
-        // 从旧位置加载配置
-        await _loadProjectsFromFile(oldFile);
-        print('已从旧位置加载项目配置');
-        
-        // 保存到新位置
-        await _saveProjectsToFile(newFile);
-        print('已保存项目配置到新位置');
-        
-        // 删除旧文件
-        final oldFilePath = oldFile.getPath();
-        await File(oldFilePath).delete();
-        print('已删除旧项目配置文件');
-        
-        Get.snackbar('迁移成功', '项目配置文件已迁移到应用专用目录');
-        print('项目配置文件迁移完成');
-      } else {
-        print('未找到旧项目配置文件，创建默认配置');
-        // 没有旧配置文件，创建示例配置
-        _createSampleData();
-      }
-    } catch (e) {
-      print('迁移项目配置文件时出错: $e');
-      // 迁移过程中出错，使用示例配置
-      _createSampleData();
-    }
-  }
 
   Future<void> _saveProjectsToFile(LocalFile file) async {
     final jsonList = projects.map((project) => project.toJson()).toList();
