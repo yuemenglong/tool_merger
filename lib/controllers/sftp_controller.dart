@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
 import '../entity/entity.dart';
 import '../explorer/uni_file.dart';
+import '../services/sftp_connection_manager.dart';
 
 class SftpController extends GetxController {
   final RxList<SftpFileRoot> sftpRoots = <SftpFileRoot>[].obs;
@@ -13,6 +14,13 @@ class SftpController extends GetxController {
   void onInit() {
     super.onInit();
     loadSftpRoots();
+  }
+
+  @override
+  void onClose() {
+    // 关闭所有SFTP连接
+    SftpConnectionManager().dispose();
+    super.onClose();
   }
 
   Future<void> loadSftpRoots() async {
@@ -68,17 +76,16 @@ class SftpController extends GetxController {
       }
       
       // If no exact match found, try to find by same properties and use that reference
-      if (matchingRoot == null && sftpRoots.isNotEmpty) {
-        final current = selectedSftpRoot.value!;
-        matchingRoot = sftpRoots.firstWhere(
-          (root) => root.name == current.name && 
-                   root.host == current.host && 
-                   root.port == current.port &&
-                   root.user == current.user &&
-                   root.path == current.path,
-          orElse: () => sftpRoots.first,
-        );
-      }
+      matchingRoot ??= sftpRoots.isNotEmpty 
+        ? sftpRoots.firstWhere(
+            (root) => root.name == selectedSftpRoot.value!.name && 
+                     root.host == selectedSftpRoot.value!.host && 
+                     root.port == selectedSftpRoot.value!.port &&
+                     root.user == selectedSftpRoot.value!.user &&
+                     root.path == selectedSftpRoot.value!.path,
+            orElse: () => sftpRoots.first,
+          )
+        : null;
       
       selectedSftpRoot.value = matchingRoot;
     }
@@ -152,12 +159,10 @@ class SftpController extends GetxController {
     }
     
     // If not found by reference, find by equality
-    if (exactMatch == null) {
-      exactMatch = sftpRoots.firstWhere(
-        (r) => r == root,
-        orElse: () => root,
-      );
-    }
+    exactMatch ??= sftpRoots.firstWhere(
+      (r) => r == root,
+      orElse: () => root,
+    );
     
     selectedSftpRoot.value = exactMatch;
   }
@@ -215,5 +220,44 @@ class SftpController extends GetxController {
     
     sftpRoots.refresh();
     await saveSftpRoots();
+  }
+
+  // 连接管理方法
+  void clearConnection(SftpFileRoot root) {
+    final connectionInfo = SftpConnectionInfo(
+      host: root.host!,
+      port: root.port!,
+      user: root.user!,
+      password: root.password!,
+    );
+    SftpConnectionManager().removeConnectionByInfo(connectionInfo);
+    Get.snackbar('成功', '已清理 ${root.name} 的连接缓存', duration: const Duration(seconds: 1));
+  }
+
+  void clearAllConnections() {
+    SftpConnectionManager().clearAllConnections();
+    Get.snackbar('成功', '已清理所有SFTP连接缓存', duration: const Duration(seconds: 1));
+  }
+
+  int getActiveConnectionCount() {
+    return SftpConnectionManager().activeConnectionCount;
+  }
+
+  Future<bool> testConnection(SftpFileRoot root) async {
+    try {
+      final connectionInfo = SftpConnectionInfo(
+        host: root.host!,
+        port: root.port!,
+        user: root.user!,
+        password: root.password!,
+      );
+      
+      await SftpConnectionManager().getConnection(connectionInfo);
+      Get.snackbar('成功', '连接 ${root.name} 成功', duration: const Duration(seconds: 1));
+      return true;
+    } catch (e) {
+      Get.snackbar('错误', '连接 ${root.name} 失败: $e', duration: const Duration(seconds: 2));
+      return false;
+    }
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../entity/entity.dart';
 import '../controllers/project_controller.dart';
+import '../services/sftp_connection_manager.dart';
 import 'uni_file.dart';
 
 class SftpFileInfo {
@@ -120,7 +121,22 @@ class SftpExplorerController extends GetxController {
       _sortFiles();
     } catch (e) {
       _error.value = e.toString();
-      Get.snackbar('错误', '无法加载目录: $e', backgroundColor: Colors.red.withOpacity(0.7), duration: const Duration(seconds: 1));
+      
+      // 检查是否是连接错误，如果是则清理连接缓存
+      if (e.toString().contains('连接') || e.toString().contains('Connection')) {
+        final root = _currentRoot.value;
+        if (root != null) {
+          final connectionInfo = SftpConnectionInfo(
+            host: root.host!,
+            port: root.port!,
+            user: root.user!,
+            password: root.password!,
+          );
+          SftpConnectionManager().removeConnectionByInfo(connectionInfo);
+        }
+      }
+      
+      Get.snackbar('错误', '无法加载目录: $e', backgroundColor: Colors.red.withOpacity(0.7), duration: const Duration(seconds: 2));
     } finally {
       _isLoading.value = false;
     }
@@ -235,6 +251,21 @@ class SftpExplorerController extends GetxController {
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
     if (bytes < 1024 * 1024 * 1024) return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
     return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
+  }
+
+  // 刷新连接 - 清理缓存并重新连接
+  Future<void> refreshConnection() async {
+    final root = _currentRoot.value;
+    if (root != null) {
+      final connectionInfo = SftpConnectionInfo(
+        host: root.host!,
+        port: root.port!,
+        user: root.user!,
+        password: root.password!,
+      );
+      SftpConnectionManager().removeConnectionByInfo(connectionInfo);
+      await refresh();
+    }
   }
 }
 
