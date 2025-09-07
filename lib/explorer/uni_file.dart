@@ -32,66 +32,126 @@ abstract class UniFile {
 }
 
 class LocalFile extends UniFile {
-  final File _file;
+  final String _path;
+  final bool? _isDirectory;
+  final int? _size;
+  final DateTime? _modifiedTime;
 
-  LocalFile(String path) : _file = File(path);
+  LocalFile._({
+    required String path,
+    bool? isDirectory,
+    int? size,
+    DateTime? modifiedTime,
+  })  : _path = path,
+        _isDirectory = isDirectory,
+        _size = size,
+        _modifiedTime = modifiedTime;
 
-  LocalFile.fromFile(File file) : _file = file;
+  LocalFile(String path) : this._(path: path);
+
+  LocalFile.fromFile(File file) : this._(path: file.path);
 
   @override
   Future<Uint8List> read() async {
-    return await _file.readAsBytes();
+    final file = File(_path);
+    return await file.readAsBytes();
   }
 
   @override
   Future<List<UniFile>> list() async {
-    var exists = _file.existsSync();
-    var stat = _file.statSync();
-    if (!exists || stat.type != FileSystemEntityType.directory) {
+    final directory = Directory(_path);
+    if (!directory.existsSync()) {
       return [];
     }
-    final directory = Directory(_file.path);
+    final stat = directory.statSync();
+    if (stat.type != FileSystemEntityType.directory) {
+      return [];
+    }
     final entities = await directory.list().toList();
-    return entities.map((entity) => LocalFile(entity.path)).toList();
-    return [];
+    
+    // 缓存每个实体的信息
+    final results = <LocalFile>[];
+    for (final entity in entities) {
+      final entityStat = await entity.stat();
+      results.add(LocalFile.createWithCache(
+        entity.path,
+        isDirectory: entityStat.type == FileSystemEntityType.directory,
+        size: entityStat.size,
+        modifiedTime: entityStat.modified,
+      ));
+    }
+    return results;
   }
 
   @override
   Future<bool> isDir() async {
-    final directory = Directory(_file.path);
+    if (_isDirectory != null) {
+      return _isDirectory;
+    }
+    
+    final directory = Directory(_path);
     return await directory.exists();
   }
 
   @override
   Future<bool> isFile() async {
-    return await _file.exists();
+    if (_isDirectory != null) {
+      return !_isDirectory;
+    }
+    
+    final file = File(_path);
+    return await file.exists();
   }
 
   @override
   String getPath() {
-    return _file.path;
+    return _path;
   }
 
   @override
   String getName() {
-    return _file.path.split(Platform.pathSeparator).last;
+    return _path.split(Platform.pathSeparator).last;
   }
 
   @override
   Future<int> getSize() async {
-    if (!await _file.exists()) return 0;
-    final stat = await _file.stat();
+    if (_size != null) {
+      return _size;
+    }
+    
+    final file = File(_path);
+    if (!await file.exists()) return 0;
+    final stat = await file.stat();
     return stat.size;
   }
 
   @override
   UniFile? getParent() {
-    final parent = _file.parent;
-    return parent.path != _file.path ? LocalFile.fromFile(File(parent.path)) : null;
+    final file = File(_path);
+    final parent = file.parent;
+    return parent.path != _path ? LocalFile(parent.path) : null;
   }
 
   static LocalFile create(String path) {
     return LocalFile(path);
+  }
+
+  static LocalFile createWithCache(
+    String path, {
+    bool? isDirectory,
+    int? size,
+    DateTime? modifiedTime,
+  }) {
+    return LocalFile._(
+      path: path,
+      isDirectory: isDirectory,
+      size: size,
+      modifiedTime: modifiedTime,
+    );
+  }
+
+  DateTime? getModifiedTime() {
+    return _modifiedTime;
   }
 }
 
@@ -207,7 +267,7 @@ class SftpFile extends UniFile {
   @override
   Future<bool> isDir() async {
     if (_isDirectory != null) {
-      return _isDirectory!;
+      return _isDirectory;
     }
 
     final client = SSHClient(
@@ -230,7 +290,7 @@ class SftpFile extends UniFile {
   @override
   Future<bool> isFile() async {
     if (_isDirectory != null) {
-      return !_isDirectory!;
+      return !_isDirectory;
     }
 
     final client = SSHClient(
@@ -263,7 +323,7 @@ class SftpFile extends UniFile {
   @override
   Future<int> getSize() async {
     if (_size != null) {
-      return _size!;
+      return _size;
     }
 
     final client = SSHClient(
