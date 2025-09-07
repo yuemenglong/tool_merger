@@ -280,6 +280,8 @@ class _SftpExplorerPageState extends State<SftpExplorerPage> {
             children: [
               TextField(
                 controller: nameController,
+                autofocus: true,
+                enableInteractiveSelection: true,
                 decoration: const InputDecoration(
                   labelText: '连接名称',
                   border: OutlineInputBorder(),
@@ -292,6 +294,7 @@ class _SftpExplorerPageState extends State<SftpExplorerPage> {
                     flex: 3,
                     child: TextField(
                       controller: hostController,
+                      enableInteractiveSelection: true,
                       decoration: const InputDecoration(
                         labelText: '主机地址',
                         border: OutlineInputBorder(),
@@ -303,6 +306,7 @@ class _SftpExplorerPageState extends State<SftpExplorerPage> {
                     flex: 1,
                     child: TextField(
                       controller: portController,
+                      enableInteractiveSelection: true,
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
                         labelText: '端口',
@@ -315,6 +319,7 @@ class _SftpExplorerPageState extends State<SftpExplorerPage> {
               const SizedBox(height: 16),
               TextField(
                 controller: userController,
+                enableInteractiveSelection: true,
                 decoration: const InputDecoration(
                   labelText: '用户名',
                   border: OutlineInputBorder(),
@@ -323,6 +328,7 @@ class _SftpExplorerPageState extends State<SftpExplorerPage> {
               const SizedBox(height: 16),
               TextField(
                 controller: passwordController,
+                enableInteractiveSelection: true,
                 obscureText: true,
                 decoration: const InputDecoration(
                   labelText: '密码',
@@ -332,6 +338,7 @@ class _SftpExplorerPageState extends State<SftpExplorerPage> {
               const SizedBox(height: 16),
               TextField(
                 controller: pathController,
+                enableInteractiveSelection: true,
                 decoration: const InputDecoration(
                   labelText: '初始路径',
                   border: OutlineInputBorder(),

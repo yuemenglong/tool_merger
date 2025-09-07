@@ -211,6 +211,8 @@ class ToolMergerHomePage extends StatelessWidget {
               children: [
                 TextField(
                   controller: nameController,
+                  autofocus: true,
+                  enableInteractiveSelection: true,
                   decoration: const InputDecoration(
                     labelText: '名称',
                     hintText: '输入显示名称',
@@ -219,6 +221,7 @@ class ToolMergerHomePage extends StatelessWidget {
                 const SizedBox(height: 12),
                 TextField(
                   controller: hostController,
+                  enableInteractiveSelection: true,
                   decoration: const InputDecoration(
                     labelText: '主机地址',
                     hintText: '例如: 192.168.1.100',
@@ -227,6 +230,7 @@ class ToolMergerHomePage extends StatelessWidget {
                 const SizedBox(height: 12),
                 TextField(
                   controller: portController,
+                  enableInteractiveSelection: true,
                   decoration: const InputDecoration(
                     labelText: '端口',
                     hintText: '默认: 22',
@@ -236,6 +240,7 @@ class ToolMergerHomePage extends StatelessWidget {
                 const SizedBox(height: 12),
                 TextField(
                   controller: userController,
+                  enableInteractiveSelection: true,
                   decoration: const InputDecoration(
                     labelText: '用户名',
                     hintText: '输入用户名',
@@ -244,6 +249,7 @@ class ToolMergerHomePage extends StatelessWidget {
                 const SizedBox(height: 12),
                 TextField(
                   controller: passwordController,
+                  enableInteractiveSelection: true,
                   decoration: const InputDecoration(
                     labelText: '密码',
                     hintText: '输入密码',
@@ -253,6 +259,7 @@ class ToolMergerHomePage extends StatelessWidget {
                 const SizedBox(height: 12),
                 TextField(
                   controller: pathController,
+                  enableInteractiveSelection: true,
                   decoration: const InputDecoration(
                     labelText: '根路径',
                     hintText: '例如: /home/user/projects',
