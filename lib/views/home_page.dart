@@ -37,6 +37,28 @@ class ToolMergerHomePage extends StatelessWidget {
     );
   }
 
+  SftpFileRoot? _findMatchingRoot(ProjectController controller) {
+    final selected = controller.selectedSftpRoot.value;
+    if (selected == null) return null;
+    
+    // Check if the selected root exists by reference in the list
+    for (final root in controller.sftpRoots) {
+      if (identical(root, selected)) {
+        return root;
+      }
+    }
+    
+    // Check if any root matches by equality
+    for (final root in controller.sftpRoots) {
+      if (root == selected) {
+        return root;
+      }
+    }
+    
+    // No match found, return null to show hint
+    return null;
+  }
+
   AppBar _buildAppBar(BuildContext context) {
     final ProjectController controller = Get.find<ProjectController>();
     
@@ -56,23 +78,28 @@ class ToolMergerHomePage extends StatelessWidget {
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<SftpFileRoot?>(
-                value: controller.selectedSftpRoot.value,
+                value: _findMatchingRoot(controller),
                 hint: const Text('选择SFTP根目录', style: TextStyle(fontSize: 12)),
                 items: [
                   const DropdownMenuItem<SftpFileRoot?>(
                     value: null,
                     child: Text('无', style: TextStyle(fontSize: 12)),
                   ),
-                  ...controller.sftpRoots.map((root) => DropdownMenuItem<SftpFileRoot?>(
-                    value: root,
-                    child: Text(
-                      root.name ?? '未命名',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: root.enabled == true ? Colors.black : Colors.grey,
+                  ...controller.sftpRoots.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final root = entry.value;
+                    return DropdownMenuItem<SftpFileRoot?>(
+                      value: root,
+                      key: ValueKey('sftp_root_$index'),
+                      child: Text(
+                        root.name ?? '未命名',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: root.enabled == true ? Colors.black : Colors.grey,
+                        ),
                       ),
-                    ),
-                  )).toList(),
+                    );
+                  }),
                 ],
                 onChanged: (value) {
                   controller.selectSftpRoot(value);

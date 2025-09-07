@@ -42,12 +42,45 @@ class SftpController extends GetxController {
     final List<dynamic> jsonList = json.decode(jsonString);
     sftpRoots.value = jsonList.map((json) => SftpFileRoot.fromJson(json)).toList();
     
+    // Remove duplicates based on the SftpFileRoot equality comparison
+    final uniqueRoots = <SftpFileRoot>[];
+    for (final root in sftpRoots) {
+      if (!uniqueRoots.any((existing) => existing == root)) {
+        uniqueRoots.add(root);
+      }
+    }
+    sftpRoots.value = uniqueRoots;
+    
     if (sftpRoots.isNotEmpty && selectedSftpRoot.value == null) {
       final enabledRoot = sftpRoots.firstWhere(
         (root) => root.enabled == true, 
         orElse: () => sftpRoots.first
       );
       selectedSftpRoot.value = enabledRoot;
+    } else if (selectedSftpRoot.value != null) {
+      // Ensure the selected root exists in the current list using identical reference check
+      SftpFileRoot? matchingRoot;
+      for (final root in sftpRoots) {
+        if (root == selectedSftpRoot.value) {
+          matchingRoot = root;
+          break;
+        }
+      }
+      
+      // If no exact match found, try to find by same properties and use that reference
+      if (matchingRoot == null && sftpRoots.isNotEmpty) {
+        final current = selectedSftpRoot.value!;
+        matchingRoot = sftpRoots.firstWhere(
+          (root) => root.name == current.name && 
+                   root.host == current.host && 
+                   root.port == current.port &&
+                   root.user == current.user &&
+                   root.path == current.path,
+          orElse: () => sftpRoots.first,
+        );
+      }
+      
+      selectedSftpRoot.value = matchingRoot;
     }
   }
 
@@ -104,7 +137,29 @@ class SftpController extends GetxController {
   }
 
   void selectSftpRoot(SftpFileRoot? root) {
-    selectedSftpRoot.value = root;
+    if (root == null) {
+      selectedSftpRoot.value = null;
+      return;
+    }
+    
+    // Find the exact object reference in the list
+    SftpFileRoot? exactMatch;
+    for (final listRoot in sftpRoots) {
+      if (identical(listRoot, root)) {
+        exactMatch = listRoot;
+        break;
+      }
+    }
+    
+    // If not found by reference, find by equality
+    if (exactMatch == null) {
+      exactMatch = sftpRoots.firstWhere(
+        (r) => r == root,
+        orElse: () => root,
+      );
+    }
+    
+    selectedSftpRoot.value = exactMatch;
   }
 
   Future<void> createSftpRoot(String name, String host, int port, String user, String password, String path) async {
