@@ -9,7 +9,7 @@ class ProjectItemController extends GetxController {
   final RxList<ProjectItem> currentItems = <ProjectItem>[].obs;
   final Rx<ProjectItem?> selectedItem = Rx<ProjectItem?>(null);
   
-  ProjectDataController get _dataController => Get.find<ProjectDataController>();
+  ProjectDataController get _dataController => Get.find<ProjectDataController>(tag: 'projectData');
 
   void loadProjectItems() {
     final project = _dataController.selectedProject.value;
