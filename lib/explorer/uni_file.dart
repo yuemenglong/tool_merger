@@ -293,4 +293,10 @@ class SftpFile extends UniFile {
   DateTime? getModifiedTime() {
     return _modifiedTime;
   }
+
+  // Getter methods for SFTP connection info
+  String get host => _host;
+  int get port => _port;
+  String get user => _user;
+  String get password => _password;
 }

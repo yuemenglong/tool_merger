@@ -78,12 +78,20 @@ class TargetExtension {
   }
 }
 
+enum FileType { local, sftp }
+
 class ProjectItem {
   String? name;
   String? path;
   int? sortOrder;
   bool? enabled;
   bool? isExclude;
+  FileType? fileType;
+  // SFTP connection info (only used when fileType is sftp)
+  String? sftpHost;
+  int? sftpPort;
+  String? sftpUser;
+  String? sftpPassword;
 
   ProjectItem({
     this.name,
@@ -91,6 +99,11 @@ class ProjectItem {
     this.sortOrder,
     this.enabled,
     this.isExclude,
+    this.fileType,
+    this.sftpHost,
+    this.sftpPort,
+    this.sftpUser,
+    this.sftpPassword,
   });
 
   ProjectItem.fromJson(Map<String, dynamic> json) {
@@ -99,6 +112,16 @@ class ProjectItem {
     sortOrder = json['sortOrder'];
     enabled = json['enabled'];
     isExclude = json['isExclude'] ?? false;
+    fileType = json['fileType'] != null 
+        ? FileType.values.firstWhere(
+            (e) => e.toString() == 'FileType.${json['fileType']}',
+            orElse: () => FileType.local,
+          )
+        : FileType.local;
+    sftpHost = json['sftpHost'];
+    sftpPort = json['sftpPort'];
+    sftpUser = json['sftpUser'];
+    sftpPassword = json['sftpPassword'];
   }
 
   Map<String, dynamic> toJson() {
@@ -108,6 +131,13 @@ class ProjectItem {
     data['sortOrder'] = sortOrder;
     data['enabled'] = enabled;
     data['isExclude'] = isExclude ?? false;
+    data['fileType'] = (fileType ?? FileType.local).toString().split('.').last;
+    if (fileType == FileType.sftp) {
+      data['sftpHost'] = sftpHost;
+      data['sftpPort'] = sftpPort;
+      data['sftpUser'] = sftpUser;
+      data['sftpPassword'] = sftpPassword;
+    }
     return data;
   }
 }

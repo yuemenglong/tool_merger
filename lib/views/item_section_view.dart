@@ -307,12 +307,29 @@ class ItemSectionView extends StatelessWidget {
           final bool isDirectory = snapshot.data ?? false;
           return Row(
             children: [
+              // 文件/目录类型图标
               Icon(
                 isDirectory ? Icons.folder_open : Icons.insert_drive_file_outlined,
                 size: 14,
                 color: isSelected ? Theme.of(context).colorScheme.secondary : Colors.grey.shade600,
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 2),
+              // 文件来源类型指示器
+              if (item.fileType == FileType.sftp) ...[
+                Icon(
+                  Icons.cloud,
+                  size: 12,
+                  color: Colors.blue.shade600,
+                ),
+                const SizedBox(width: 2),
+              ] else ...[
+                Icon(
+                  Icons.storage,
+                  size: 12,
+                  color: Colors.green.shade600,
+                ),
+                const SizedBox(width: 2),
+              ],
               Expanded(
                 child: Text(
                   item.name ?? '',

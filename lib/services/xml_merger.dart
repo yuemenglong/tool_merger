@@ -182,7 +182,7 @@ class XmlMerger {
 
         // isExclude 已在 Controller 中过滤，这里无需再检查
 
-        final itemFile = LocalFile.create(itemPath);
+        final itemFile = _createUniFileFromProjectItem(item);
 
         if (await itemFile.isFile()) {
           // 处理单个文件（无视过滤规则，必然引入）
@@ -519,6 +519,25 @@ class XmlMerger {
   /// 生成缩进字符串
   static String _indent(int level) {
     return '  ' * level; // 每级缩进 2 个空格
+  }
+
+  /// 根据ProjectItem的类型创建相应的UniFile实例
+  static UniFile _createUniFileFromProjectItem(ProjectItem item) {
+    final itemPath = item.path ?? '';
+    
+    if (item.fileType == FileType.sftp) {
+      // 创建SFTP文件
+      return SftpFile.create(
+        item.sftpHost ?? '',
+        item.sftpPort ?? 22,
+        item.sftpUser ?? '',
+        item.sftpPassword ?? '',
+        itemPath,
+      );
+    } else {
+      // 默认创建本地文件
+      return LocalFile.create(itemPath);
+    }
   }
 }
 

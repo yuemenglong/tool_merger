@@ -3,6 +3,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:cross_file/cross_file.dart';
 import '../entity/entity.dart';
 import '../explorer/uni_file.dart';
+import '../explorer/sftp_explorer.dart';
 import 'project_data_controller.dart';
 import 'project_item_controller.dart';
 import 'project_extension_controller.dart';
@@ -175,4 +176,95 @@ class ProjectController extends GetxController {
   Future<void> addExtension(String newExt) => _extensionController.addExtension(newExt);
   Future<void> deleteExtension(TargetExtension ext) => _extensionController.deleteExtension(ext);
   Future<void> resetExtensionsToDefault() => _extensionController.resetExtensionsToDefault();
+
+  // SFTP文件处理方法
+  Future<void> handleSftpProjectDropAndCreate(List<SftpFileInfo> sftpFiles) async {
+    if (sftpFiles.isEmpty) return;
+
+    final selectedSftpFile = sftpFiles.first;
+    final uniFile = selectedSftpFile.file;
+    
+    if (!selectedSftpFile.isDirectory) {
+      Get.snackbar('创建失败', '请选择一个文件夹以快速创建项目。');
+      return;
+    }
+
+    final projectName = uniFile.getName();
+    final isDuplicate = projects.any((p) => p.name == projectName);
+    if (isDuplicate) {
+      Get.snackbar('创建失败', '名为 "$projectName" 的项目已存在。');
+      return;
+    }
+
+    // Create the project first
+    await _dataController.createProject(projectName);
+    
+    // Add the SFTP folder as an item
+    if (selectedProject.value != null && uniFile is SftpFile) {
+      final newItem = ProjectItem(
+        name: projectName,
+        path: uniFile.getPath(),
+        enabled: true,
+        sortOrder: 0,
+        isExclude: false,
+        fileType: FileType.sftp,
+        sftpHost: uniFile.host,
+        sftpPort: uniFile.port,
+        sftpUser: uniFile.user,
+        sftpPassword: uniFile.password,
+      );
+      _itemController.currentItems.add(newItem);
+      selectedProject.value!.items = [newItem];
+      selectedProject.value!.updateTime = DateTime.now();
+      await _dataController.saveProjects();
+    }
+    
+    Get.snackbar('成功', '项目 "$projectName" 已通过SFTP文件快速创建。');
+  }
+
+  Future<void> handleSftpDroppedFiles(List<SftpFileInfo> sftpFiles) async {
+    if (selectedProject.value == null) {
+      Get.snackbar('提示', '请先选择一个项目');
+      return;
+    }
+
+    if (sftpFiles.isEmpty) return;
+
+    int addedCount = 0;
+
+    for (var sftpFileInfo in sftpFiles) {
+      final uniFile = sftpFileInfo.file;
+      final filePath = uniFile.getPath();
+      final fileName = uniFile.getName();
+
+      final exists = _itemController.currentItems.any((item) => item.path == filePath);
+      if (!exists && uniFile is SftpFile) {
+        final newItem = ProjectItem(
+          name: fileName,
+          path: filePath,
+          enabled: true,
+          sortOrder: _itemController.currentItems.length + addedCount,
+          isExclude: false,
+          fileType: FileType.sftp,
+          sftpHost: uniFile.host,
+          sftpPort: uniFile.port,
+          sftpUser: uniFile.user,
+          sftpPassword: uniFile.password,
+        );
+
+        _itemController.currentItems.add(newItem);
+        addedCount++;
+      }
+    }
+
+    if (addedCount > 0) {
+      selectedProject.value!.items = _itemController.currentItems.toList();
+      selectedProject.value!.updateTime = DateTime.now();
+      await _dataController.saveProjects();
+
+      Get.snackbar('成功', '已添加 $addedCount 个SFTP项目 (文件/目录)', duration: const Duration(seconds: 4));
+    } else {
+      Get.snackbar('提示', '所选项目均已存在');
+    }
+  }
 }

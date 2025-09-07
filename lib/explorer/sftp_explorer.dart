@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../entity/entity.dart';
+import '../controllers/project_controller.dart';
 import 'uni_file.dart';
 
 class SftpFileInfo {
@@ -292,6 +293,33 @@ class SftpExplorer extends StatelessWidget {
               onChanged: controller.setSearchQuery,
             ),
           ),
+          const SizedBox(width: 16),
+          // 项目操作按钮
+          Obx(() => ElevatedButton.icon(
+            onPressed: controller.selectedFiles.isNotEmpty 
+                ? () => _handleCreateProject(context)
+                : null,
+            icon: const Icon(Icons.create_new_folder, size: 16),
+            label: const Text('Create Project'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
+          )),
+          const SizedBox(width: 8),
+          Obx(() => ElevatedButton.icon(
+            onPressed: controller.selectedFiles.isNotEmpty 
+                ? () => _handleAddToCurrentProject(context)
+                : null,
+            icon: const Icon(Icons.add, size: 16),
+            label: const Text('Add to Current'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
+          )),
         ],
       ),
     );
@@ -462,5 +490,31 @@ class SftpExplorer extends StatelessWidget {
         ),
       );
     });
+  }
+
+  void _handleCreateProject(BuildContext context) {
+    if (controller.selectedFiles.isEmpty) return;
+    
+    // 获取ProjectController实例
+    try {
+      final projectController = Get.find<ProjectController>();
+      // 调用SFTP项目创建方法
+      projectController.handleSftpProjectDropAndCreate(controller.selectedFiles);
+    } catch (e) {
+      Get.snackbar('错误', '无法获取项目控制器: $e');
+    }
+  }
+
+  void _handleAddToCurrentProject(BuildContext context) {
+    if (controller.selectedFiles.isEmpty) return;
+    
+    // 获取ProjectController实例
+    try {
+      final projectController = Get.find<ProjectController>();
+      // 调用SFTP文件添加方法
+      projectController.handleSftpDroppedFiles(controller.selectedFiles);
+    } catch (e) {
+      Get.snackbar('错误', '无法获取项目控制器: $e');
+    }
   }
 }
