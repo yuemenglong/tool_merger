@@ -188,3 +188,54 @@ class MergeResult {
     required this.mergedFilePaths,
   });
 }
+
+class SftpFileRoot {
+  String? name;
+  String? host;
+  int? port;
+  String? user;
+  String? password;
+  String? path;
+  bool? enabled;
+  DateTime? createTime;
+  DateTime? updateTime;
+
+  SftpFileRoot({
+    this.name,
+    this.host,
+    this.port,
+    this.user,
+    this.password,
+    this.path,
+    this.enabled,
+    this.createTime,
+    this.updateTime,
+  });
+
+  SftpFileRoot.fromJson(Map<String, dynamic> json) {
+    name = json['name'];
+    host = json['host'];
+    port = json['port'];
+    user = json['user'];
+    password = json['password'];
+    path = json['path'];
+    enabled = json['enabled'] ?? true;
+    createTime = json['createTime'] != null ? DateTime.parse(json['createTime']) : null;
+    updateTime = json['updateTime'] != null ? DateTime.parse(json['updateTime']) : null;
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['name'] = name;
+    data['host'] = host;
+    data['port'] = port;
+    data['user'] = user;
+    data['password'] = password;
+    data['path'] = path;
+    data['enabled'] = enabled ?? true;
+    data['createTime'] = createTime?.toIso8601String();
+    data['updateTime'] = updateTime?.toIso8601String();
+    return data;
+  }
+}
+
