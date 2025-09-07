@@ -55,16 +55,13 @@ class LocalFile extends UniFile {
 
   @override
   Future<bool> isDir() async {
-    if (!await _file.exists()) return false;
-    final stat = await _file.stat();
-    return stat.type == FileSystemEntityType.directory;
+    final directory = Directory(_file.path);
+    return await directory.exists();
   }
 
   @override
   Future<bool> isFile() async {
-    if (!await _file.exists()) return false;
-    final stat = await _file.stat();
-    return stat.type == FileSystemEntityType.file;
+    return await _file.exists();
   }
 
   @override
