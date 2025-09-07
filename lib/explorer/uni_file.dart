@@ -245,7 +245,9 @@ class SftpFile extends UniFile {
     try {
       final sftp = await client.sftp();
       final files = await sftp.listdir(_path);
-      return files.map((item) {
+      return files
+          .where((item) => item.filename != '.' && item.filename != '..')
+          .map((item) {
         final itemPath = _path.endsWith('/') ? '$_path${item.filename}' : '$_path/${item.filename}';
 
         return SftpFile.createWithCache(
