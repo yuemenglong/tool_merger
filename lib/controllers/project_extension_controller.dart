@@ -5,7 +5,7 @@ import '../views/extension_settings_page.dart';
 import 'project_data_controller.dart';
 
 class ProjectExtensionController extends GetxController {
-  ProjectDataController get _dataController => Get.find<ProjectDataController>();
+  ProjectDataController get _dataController => Get.find<ProjectDataController>(tag: 'projectData');
 
   void openExtensionSettings() {
     if (_dataController.selectedProject.value != null) {
