@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../explorer/uni_file.dart';
 import '../entity/entity.dart';
 import '../explorer/sftp_explorer_page.dart';
+import '../controllers/project_controller.dart';
 
 class FileExplorerUtils {
   /// 在文件资源管理器中打开并选中指定路径的文件或目录
@@ -56,16 +57,46 @@ class FileExplorerUtils {
     }
 
     try {
-      // 创建临时的SftpFileRoot对象用于连接
-      final sftpRoot = SftpFileRoot(
-        name: projectItem.name ?? 'SFTP连接',
-        host: projectItem.sftpHost,
-        port: projectItem.sftpPort ?? 22,
-        user: projectItem.sftpUser,
-        password: projectItem.sftpPassword ?? '',
-        path: projectItem.path,
-        enabled: true,
-      );
+      // 尝试找到现有的匹配SftpFileRoot
+      SftpFileRoot? existingSftpRoot;
+      try {
+        final controller = Get.find<ProjectController>();
+        existingSftpRoot = controller.sftpRoots.firstWhereOrNull((root) =>
+          root.host == projectItem.sftpHost &&
+          root.port == (projectItem.sftpPort ?? 22) &&
+          root.user == projectItem.sftpUser &&
+          root.enabled == true
+        );
+      } catch (e) {
+        // 如果找不到 ProjectController，继续使用临时对象
+      }
+
+      SftpFileRoot sftpRoot;
+      if (existingSftpRoot != null) {
+        // 使用现有的SftpFileRoot，但更新路径
+        sftpRoot = SftpFileRoot(
+          name: existingSftpRoot.name,
+          host: existingSftpRoot.host,
+          port: existingSftpRoot.port,
+          user: existingSftpRoot.user,
+          password: existingSftpRoot.password,
+          path: projectItem.path, // 使用项目项的路径
+          enabled: existingSftpRoot.enabled,
+          createTime: existingSftpRoot.createTime,
+          updateTime: existingSftpRoot.updateTime,
+        );
+      } else {
+        // 创建临时的SftpFileRoot对象用于连接
+        sftpRoot = SftpFileRoot(
+          name: projectItem.name ?? 'SFTP连接',
+          host: projectItem.sftpHost,
+          port: projectItem.sftpPort ?? 22,
+          user: projectItem.sftpUser,
+          password: projectItem.sftpPassword ?? '',
+          path: projectItem.path,
+          enabled: true,
+        );
+      }
 
       // 导航到SFTP浏览器页面
       await Get.to(() => const SftpExplorerPage(), arguments: sftpRoot);

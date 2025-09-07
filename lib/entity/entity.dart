@@ -267,5 +267,31 @@ class SftpFileRoot {
     data['updateTime'] = updateTime?.toIso8601String();
     return data;
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is SftpFileRoot &&
+        other.name == name &&
+        other.host == host &&
+        other.port == port &&
+        other.user == user &&
+        other.password == password &&
+        other.path == path &&
+        other.enabled == enabled;
+  }
+
+  @override
+  int get hashCode {
+    return Object.hash(
+      name,
+      host,
+      port,
+      user,
+      password,
+      path,
+      enabled,
+    );
+  }
 }
 

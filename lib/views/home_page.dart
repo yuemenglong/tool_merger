@@ -41,15 +41,14 @@ class ToolMergerHomePage extends StatelessWidget {
     final ProjectController controller = Get.find<ProjectController>();
     
     return AppBar(
-      title: Row(
-        children: [
-          const Text(
-            'Tool Merger',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-          ),
-          const SizedBox(width: 16),
-          // SFTP Root 下拉框
-          Obx(() => Container(
+      title: const Text(
+        'Tool Merger',
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+      ),
+      actions: [
+        // SFTP Root 下拉框
+        Flexible(
+          child: Obx(() => Container(
             padding: const EdgeInsets.symmetric(horizontal: 8),
             decoration: BoxDecoration(
               border: Border.all(color: Colors.grey.shade300),
@@ -83,37 +82,37 @@ class ToolMergerHomePage extends StatelessWidget {
               ),
             ),
           )),
-          const SizedBox(width: 8),
-          // 添加按钮
-          IconButton(
-            onPressed: () => _showSftpRootDialog(context, controller),
-            icon: const Icon(Icons.add, size: 18),
-            tooltip: '添加SFTP根目录',
-            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-            padding: const EdgeInsets.all(4),
-          ),
-          // 删除按钮
-          Obx(() => IconButton(
-            onPressed: controller.selectedSftpRoot.value != null 
-                ? () => _showDeleteSftpRootDialog(context, controller) 
-                : null,
-            icon: const Icon(Icons.delete, size: 18),
-            tooltip: '删除SFTP根目录',
-            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-            padding: const EdgeInsets.all(4),
-          )),
-          // 浏览按钮
-          Obx(() => IconButton(
-            onPressed: controller.selectedSftpRoot.value != null && controller.selectedSftpRoot.value!.enabled == true
-                ? () => _openSftpExplorer(context, controller.selectedSftpRoot.value!) 
-                : null,
-            icon: const Icon(Icons.folder_open, size: 18),
-            tooltip: '浏览SFTP文件',
-            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-            padding: const EdgeInsets.all(4),
-          )),
-        ],
-      ),
+        ),
+        const SizedBox(width: 8),
+        // 添加按钮
+        IconButton(
+          onPressed: () => _showSftpRootDialog(context, controller),
+          icon: const Icon(Icons.add, size: 18),
+          tooltip: '添加SFTP根目录',
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          padding: const EdgeInsets.all(4),
+        ),
+        // 删除按钮
+        Obx(() => IconButton(
+          onPressed: controller.selectedSftpRoot.value != null 
+              ? () => _showDeleteSftpRootDialog(context, controller) 
+              : null,
+          icon: const Icon(Icons.delete, size: 18),
+          tooltip: '删除SFTP根目录',
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          padding: const EdgeInsets.all(4),
+        )),
+        // 浏览按钮
+        Obx(() => IconButton(
+          onPressed: controller.selectedSftpRoot.value != null && controller.selectedSftpRoot.value!.enabled == true
+              ? () => _openSftpExplorer(context, controller.selectedSftpRoot.value!) 
+              : null,
+          icon: const Icon(Icons.folder_open, size: 18),
+          tooltip: '浏览SFTP文件',
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          padding: const EdgeInsets.all(4),
+        )),
+      ],
       backgroundColor: Theme.of(context).colorScheme.primaryContainer,
       foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
       elevation: 0,
