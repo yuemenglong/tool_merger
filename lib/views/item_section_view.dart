@@ -366,10 +366,10 @@ class ItemSectionView extends StatelessWidget {
           icon: const Icon(Icons.open_in_new_outlined),
           iconSize: 18.0,
           color: Colors.blue.shade700,
-          tooltip: '在文件夹中显示', // 提示文本
+          tooltip: item.fileType == ProjectFileType.sftp ? '在SFTP浏览器中打开' : '在文件夹中显示',
           onPressed: () async {
-            // 直接调用重构后的工具函数
-            await FileExplorerUtils.openInExplorer(item.path);
+            // 传递ProjectItem对象以支持SFTP路径
+            await FileExplorerUtils.openInExplorer(item.path, projectItem: item);
           },
         ),
       ),
