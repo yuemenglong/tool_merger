@@ -43,7 +43,7 @@ class ProjectItemController extends GetxController {
           path: selectedDirectory,
           enabled: true,
           sortOrder: currentItems.length,
-          fileType: FileType.local,
+          fileType: ProjectFileType.local,
         );
         
         currentItems.add(newItem);
@@ -88,7 +88,7 @@ class ProjectItemController extends GetxController {
               enabled: true,
               sortOrder: currentItems.length,
               isExclude: false,
-              fileType: FileType.local,
+              fileType: ProjectFileType.local,
             );
             
             currentItems.add(newItem);
@@ -199,7 +199,7 @@ class ProjectItemController extends GetxController {
           enabled: true,
           sortOrder: currentItems.length,
           isExclude: false,
-          fileType: FileType.local,
+          fileType: ProjectFileType.local,
         );
 
         currentItems.add(newItem);
@@ -251,7 +251,7 @@ class ProjectItemController extends GetxController {
       enabled: true,
       sortOrder: currentItems.length,
       isExclude: false,
-      fileType: FileType.local,
+      fileType: ProjectFileType.local,
     );
 
     currentItems.add(newItem);

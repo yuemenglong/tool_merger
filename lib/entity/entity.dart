@@ -78,7 +78,7 @@ class TargetExtension {
   }
 }
 
-enum FileType { local, sftp }
+enum ProjectFileType { local, sftp }
 
 class ProjectItem {
   String? name;
@@ -86,7 +86,7 @@ class ProjectItem {
   int? sortOrder;
   bool? enabled;
   bool? isExclude;
-  FileType? fileType;
+  ProjectFileType? fileType;
   // SFTP connection info (only used when fileType is sftp)
   String? sftpHost;
   int? sftpPort;
@@ -113,11 +113,11 @@ class ProjectItem {
     enabled = json['enabled'];
     isExclude = json['isExclude'] ?? false;
     fileType = json['fileType'] != null 
-        ? FileType.values.firstWhere(
-            (e) => e.toString() == 'FileType.${json['fileType']}',
-            orElse: () => FileType.local,
+        ? ProjectFileType.values.firstWhere(
+            (e) => e.toString() == 'ProjectFileType.${json['fileType']}',
+            orElse: () => ProjectFileType.local,
           )
-        : FileType.local;
+        : ProjectFileType.local;
     sftpHost = json['sftpHost'];
     sftpPort = json['sftpPort'];
     sftpUser = json['sftpUser'];
@@ -131,8 +131,8 @@ class ProjectItem {
     data['sortOrder'] = sortOrder;
     data['enabled'] = enabled;
     data['isExclude'] = isExclude ?? false;
-    data['fileType'] = (fileType ?? FileType.local).toString().split('.').last;
-    if (fileType == FileType.sftp) {
+    data['fileType'] = (fileType ?? ProjectFileType.local).toString().split('.').last;
+    if (fileType == ProjectFileType.sftp) {
       data['sftpHost'] = sftpHost;
       data['sftpPort'] = sftpPort;
       data['sftpUser'] = sftpUser;

@@ -315,7 +315,7 @@ class ItemSectionView extends StatelessWidget {
               ),
               const SizedBox(width: 2),
               // 文件来源类型指示器
-              if (item.fileType == FileType.sftp) ...[
+              if (item.fileType == ProjectFileType.sftp) ...[
                 Icon(
                   Icons.cloud,
                   size: 12,

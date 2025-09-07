@@ -525,7 +525,7 @@ class XmlMerger {
   static UniFile _createUniFileFromProjectItem(ProjectItem item) {
     final itemPath = item.path ?? '';
     
-    if (item.fileType == FileType.sftp) {
+    if (item.fileType == ProjectFileType.sftp) {
       // 创建SFTP文件
       return SftpFile.create(
         item.sftpHost ?? '',
