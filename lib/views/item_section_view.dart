@@ -230,9 +230,8 @@ class ItemSectionView extends StatelessWidget {
           color: Colors.transparent,
           child: InkWell(
             borderRadius: BorderRadius.circular(4),
-            onTap: () async {
+            onTap: () {
               controller.selectItem(item);
-              await controller.toggleItemEnabled(item);
             },
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
