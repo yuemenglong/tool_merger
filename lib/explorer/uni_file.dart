@@ -45,11 +45,14 @@ class LocalFile extends UniFile {
 
   @override
   Future<List<UniFile>> list() async {
-    if (await _file.exists() && await _file.stat().then((stat) => stat.type == FileSystemEntityType.directory)) {
-      final directory = Directory(_file.path);
-      final entities = await directory.list().toList();
-      return entities.map((entity) => LocalFile(entity.path)).toList();
+    var exists = _file.existsSync();
+    var stat = _file.statSync();
+    if (!exists || stat.type != FileSystemEntityType.directory) {
+      return [];
     }
+    final directory = Directory(_file.path);
+    final entities = await directory.list().toList();
+    return entities.map((entity) => LocalFile(entity.path)).toList();
     return [];
   }
 
@@ -131,10 +134,10 @@ class SftpFile extends UniFile {
   }
 
   static SftpFile createWithCache(
-    String host, 
-    int port, 
-    String user, 
-    String password, 
+    String host,
+    int port,
+    String user,
+    String password,
     String path, {
     bool? isDirectory,
     int? size,
@@ -159,7 +162,7 @@ class SftpFile extends UniFile {
       username: _user,
       onPasswordRequest: () => _password,
     );
-    
+
     try {
       final sftp = await client.sftp();
       final file = await sftp.open(_path);
@@ -178,24 +181,22 @@ class SftpFile extends UniFile {
       username: _user,
       onPasswordRequest: () => _password,
     );
-    
+
     try {
       final sftp = await client.sftp();
       final files = await sftp.listdir(_path);
       return files.map((item) {
         final itemPath = _path.endsWith('/') ? '$_path${item.filename}' : '$_path/${item.filename}';
-        
+
         return SftpFile.createWithCache(
-          _host, 
-          _port, 
-          _user, 
-          _password, 
+          _host,
+          _port,
+          _user,
+          _password,
           itemPath,
           isDirectory: item.attr.isDirectory,
           size: item.attr.size,
-          modifiedTime: item.attr.modifyTime != null 
-            ? DateTime.fromMillisecondsSinceEpoch(item.attr.modifyTime! * 1000) 
-            : null,
+          modifiedTime: item.attr.modifyTime != null ? DateTime.fromMillisecondsSinceEpoch(item.attr.modifyTime! * 1000) : null,
         );
       }).toList();
     } finally {
@@ -208,13 +209,13 @@ class SftpFile extends UniFile {
     if (_isDirectory != null) {
       return _isDirectory!;
     }
-    
+
     final client = SSHClient(
       await SSHSocket.connect(_host, _port),
       username: _user,
       onPasswordRequest: () => _password,
     );
-    
+
     try {
       final sftp = await client.sftp();
       final stat = await sftp.stat(_path);
@@ -231,13 +232,13 @@ class SftpFile extends UniFile {
     if (_isDirectory != null) {
       return !_isDirectory!;
     }
-    
+
     final client = SSHClient(
       await SSHSocket.connect(_host, _port),
       username: _user,
       onPasswordRequest: () => _password,
     );
-    
+
     try {
       final sftp = await client.sftp();
       final stat = await sftp.stat(_path);
@@ -264,13 +265,13 @@ class SftpFile extends UniFile {
     if (_size != null) {
       return _size!;
     }
-    
+
     final client = SSHClient(
       await SSHSocket.connect(_host, _port),
       username: _user,
       onPasswordRequest: () => _password,
     );
-    
+
     try {
       final sftp = await client.sftp();
       final stat = await sftp.stat(_path);
@@ -296,7 +297,10 @@ class SftpFile extends UniFile {
 
   // Getter methods for SFTP connection info
   String get host => _host;
+
   int get port => _port;
+
   String get user => _user;
+
   String get password => _password;
 }
