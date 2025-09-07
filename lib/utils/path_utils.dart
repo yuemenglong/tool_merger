@@ -1,12 +1,14 @@
 import 'dart:io';
+import '../explorer/uni_file.dart';
 
 class PathUtils {
   /// 计算文件路径列表的公共父目录
   static String? findCommonParentPath(List<String> paths) {
     if (paths.isEmpty) return null;
     if (paths.length == 1) {
-      final file = File(paths.first);
-      return file.parent.path;
+      final file = LocalFile.create(paths.first);
+      final parent = file.getParent();
+      return parent?.getPath();
     }
 
     // 将所有路径分割成组件

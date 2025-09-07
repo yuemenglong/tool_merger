@@ -11,6 +11,7 @@ import 'controllers/project_controller.dart';
 import 'config.dart';
 import 'utils/path_utils.dart';
 import 'utils/file_explorer_utils.dart';
+import 'explorer/uni_file.dart';
 
 void main() {
   runApp(const MyApp());
@@ -956,33 +957,46 @@ class ToolMergerHomePage extends StatelessWidget {
   }
 
   Widget _buildItemNameCell(BuildContext context, ProjectItem item, bool isSelected) {
-    // 判断路径是文件还是目录
-    final bool isDirectory = FileSystemEntity.isDirectorySync(item.path ?? '');
-    
     return SizedBox(
       width: 160,
-      child: Row(
-        children: [
-          Icon(
-            isDirectory ? Icons.folder_open : Icons.insert_drive_file_outlined, // 动态图标
-            size: 14,
-            color: isSelected ? Theme.of(context).colorScheme.secondary : Colors.grey.shade600,
-          ),
-          const SizedBox(width: 4),
-          Expanded(
-            child: Text(
-              item.name ?? '', // 直接使用item.name，它在拖拽时已保存
-              style: TextStyle(
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                fontSize: AppConfig.primaryFontSize,
-                color: isSelected ? Theme.of(context).colorScheme.secondary : null,
+      child: FutureBuilder<bool>(
+        future: _isItemDirectory(item.path),
+        builder: (context, snapshot) {
+          final bool isDirectory = snapshot.data ?? false;
+          return Row(
+            children: [
+              Icon(
+                isDirectory ? Icons.folder_open : Icons.insert_drive_file_outlined,
+                size: 14,
+                color: isSelected ? Theme.of(context).colorScheme.secondary : Colors.grey.shade600,
               ),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  item.name ?? '',
+                  style: TextStyle(
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    fontSize: AppConfig.primaryFontSize,
+                    color: isSelected ? Theme.of(context).colorScheme.secondary : null,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
+  }
+
+  Future<bool> _isItemDirectory(String? path) async {
+    if (path == null || path.isEmpty) return false;
+    try {
+      final uniFile = LocalFile.create(path);
+      return await uniFile.isDir();
+    } catch (e) {
+      return false;
+    }
   }
 
   Widget _buildItemOpenCell(BuildContext context, ProjectItem item) {

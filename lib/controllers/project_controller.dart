@@ -8,6 +8,7 @@ import 'package:cross_file/cross_file.dart';
 import '../entity/entity.dart';
 import '../services/xml_merger.dart';
 import '../utils/windows_clipboard.dart';
+import '../explorer/uni_file.dart';
 
 import '../views/extension_settings_page.dart';
 
@@ -48,10 +49,11 @@ class ProjectController extends GetxController {
   Future<void> loadProjects() async {
     try {
       final directory = await getApplicationDocumentsDirectory();
-      final file = File('${directory.path}/projects.json');
+      final file = LocalFile.create('${directory.path}/projects.json');
       
-      if (await file.exists()) {
-        final jsonString = await file.readAsString();
+      if (await file.isFile()) {
+        final contentBytes = await file.read();
+        final jsonString = String.fromCharCodes(contentBytes);
         final List<dynamic> jsonList = json.decode(jsonString);
         projects.value = jsonList.map((json) => Project.fromJson(json)).toList();
 
@@ -80,10 +82,12 @@ class ProjectController extends GetxController {
   Future<void> saveProjects() async {
     try {
       final directory = await getApplicationDocumentsDirectory();
-      final file = File('${directory.path}/projects.json');
       
       final jsonList = projects.map((project) => project.toJson()).toList();
-      await file.writeAsString(json.encode(jsonList));
+      final content = json.encode(jsonList);
+      // Note: UniFile doesn't have writeAsString, but we can handle this by creating a temporary File for writing
+      final outputFile = File('${directory.path}/projects.json');
+      await outputFile.writeAsString(content);
     } catch (e) {
       Get.snackbar('错误', '保存项目失败: $e');
     }
@@ -540,8 +544,8 @@ class ProjectController extends GetxController {
     final droppedFile = files.first;
     final filePath = droppedFile.path;
 
-    final entityType = FileSystemEntity.typeSync(filePath);
-    if (entityType != FileSystemEntityType.directory) {
+    final uniFile = LocalFile.create(filePath);
+    if (!await uniFile.isDir()) {
       Get.snackbar('创建失败', '请拖拽一个文件夹以快速创建项目。');
       return;
     }
@@ -691,8 +695,8 @@ class ProjectController extends GetxController {
         logBuffer.writeln('输出目录已存在: ${project.outputPath}');
       }
 
-      final outputFile = File('${project.outputPath}/${project.name}.xml');
-      logBuffer.writeln('输出文件路径: ${outputFile.path}');
+      final outputFilePath = '${project.outputPath}/${project.name}.xml';
+      logBuffer.writeln('输出文件路径: $outputFilePath');
       logBuffer.writeln('');
       
       // 使用 XmlMerger 生成 XML 内容
@@ -774,24 +778,25 @@ class ProjectController extends GetxController {
       
       // 写入文件
       logBuffer.writeln('=== 文件写入 ===');
+      final outputFile = File(outputFilePath);
       await outputFile.writeAsString(xmlContent, encoding: utf8);
-      logBuffer.writeln('文件写入完成: ${outputFile.path}');
+      logBuffer.writeln('文件写入完成: $outputFilePath');
       
       // 验证写入的文件
       bool clipboardSuccess = false;
-      final writtenFile = File(outputFile.path);
-      if (await writtenFile.exists()) {
-        final fileSize = await writtenFile.length();
+      final writtenFile = LocalFile.create(outputFilePath);
+      if (await writtenFile.isFile()) {
+        final fileSize = await writtenFile.getSize();
         logBuffer.writeln('文件验证成功:');
         logBuffer.writeln('  - 文件大小: ${(fileSize / 1024).toStringAsFixed(1)} KB');
-        logBuffer.writeln('  - 文件路径: ${writtenFile.path}');
+        logBuffer.writeln('  - 文件路径: $outputFilePath');
         
         // 将文件复制到剪切板 (仅 Windows)
         logBuffer.writeln('');
         logBuffer.writeln('=== 剪切板操作 ===');
         if (Platform.isWindows) {
           logBuffer.writeln('尝试将文件复制到剪切板...');
-          clipboardSuccess = await WindowsClipboard.copyFileToClipboard(outputFile.path);
+          clipboardSuccess = await WindowsClipboard.copyFileToClipboard(outputFilePath);
           if (clipboardSuccess) {
             logBuffer.writeln('文件已复制到剪切板，可以使用 Ctrl+V 粘贴');
           } else {
@@ -814,7 +819,7 @@ class ProjectController extends GetxController {
       logBuffer.writeln('处理统计:');
       logBuffer.writeln('  - 启用项目项: ${enabledItems.length}');
       logBuffer.writeln('  - 合并文件: ${mergeResult.mergedFilePaths.length} 个');
-      logBuffer.writeln('  - 输出文件: ${outputFile.path}');
+      logBuffer.writeln('  - 输出文件: $outputFilePath');
       
       // 收集文件状态信息
       logBuffer.writeln('');
@@ -837,7 +842,7 @@ class ProjectController extends GetxController {
       await saveProjects();
       
       // 构建成功消息
-      String successMessage = '文件生成成功!\n路径: ${outputFile.path}\n大小: ${(xmlContent.length / 1024).toStringAsFixed(1)} KB';
+      String successMessage = '文件生成成功!\n路径: $outputFilePath\n大小: ${(xmlContent.length / 1024).toStringAsFixed(1)} KB';
       
       // 如果剪切板操作成功，添加提示
       if (clipboardSuccess) {
@@ -906,12 +911,13 @@ class ProjectController extends GetxController {
   // 获取单个文件的状态信息
   Future<FileStatusInfo?> _getFileStatus(String filePath) async {
     try {
-      final file = File(filePath);
-      if (!await file.exists()) return null;
+      final file = LocalFile.create(filePath);
+      if (!await file.isFile()) return null;
       
-      final stat = await file.stat();
-      final content = await file.readAsString();
+      final contentBytes = await file.read();
+      final content = String.fromCharCodes(contentBytes);
       final lines = content.split('\n');
+      final fileSize = await file.getSize();
       
       // 获取文件扩展名
       String? extension;
@@ -924,7 +930,7 @@ class ProjectController extends GetxController {
         fullPath: filePath,
         extension: extension,
         lineCount: lines.length,
-        fileSize: stat.size,
+        fileSize: fileSize,
         processTime: DateTime.now(),
       );
     } catch (e) {

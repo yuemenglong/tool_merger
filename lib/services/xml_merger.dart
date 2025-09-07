@@ -1,6 +1,5 @@
-import 'dart:convert';
-import 'dart:io';
 import '../entity/entity.dart';
+import '../explorer/uni_file.dart';
 
 class XmlMerger {
   // 代码文件扩展名（与 C++ 版本保持一致）
@@ -183,25 +182,17 @@ class XmlMerger {
 
         // isExclude 已在 Controller 中过滤，这里无需再检查
 
-        final itemFile = File(itemPath);
-        final itemDirectory = Directory(itemPath);
+        final itemFile = LocalFile.create(itemPath);
 
-        if (await itemFile.exists()) {
+        if (await itemFile.isFile()) {
           // 处理单个文件（无视过滤规则，必然引入）
           log('处理文件: ${item.name} (${itemPath})');
 
-          String content;
-          try {
-            // 尝试以 UTF-8 读取
-            content = await itemFile.readAsString(encoding: utf8);
-          } catch (e) {
-            // 如果 UTF-8 失败，尝试系统默认编码
-            final bytes = await itemFile.readAsBytes();
-            content = String.fromCharCodes(bytes);
-          }
+          final contentBytes = await itemFile.read();
+          String content = String.fromCharCodes(contentBytes);
 
           // 检查文件是否为空
-          if (content.isEmpty && await itemFile.length() > 0) {
+          if (content.isEmpty && await itemFile.getSize() > 0) {
             log('警告: 文件 \'${item.name}\' 读取内容为空或失败，跳过XML写入。');
             stats.skippedFilesIgnored++;
             continue;
@@ -243,12 +234,12 @@ class XmlMerger {
           buffer.writeln('  </file>');
           stats.mergedFiles++;
           mergedFilePaths.add(itemPath);
-        } else if (await itemDirectory.exists()) {
+        } else if (await itemFile.isDir()) {
           // 处理目录
           log('检查目录: ${item.name} (${itemPath})');
 
           // 检查目录是否只包含空文件夹
-          final isOnlyEmptyFolders = await _isDirectoryOnlyEmptyFolders(itemDirectory, allItemsMap, enabledExtensions);
+          final isOnlyEmptyFolders = await _isDirectoryOnlyEmptyFolders(itemFile, allItemsMap, enabledExtensions);
           if (isOnlyEmptyFolders) {
             log('跳过空目录: ${item.name} (只包含空文件夹)');
             stats.skippedDirs++;
@@ -262,7 +253,7 @@ class XmlMerger {
 
           // **修改**: 调用递归函数时传入 allItemsMap 和 enabledExtensions
           await _processDirectoryRecursive(
-            itemDirectory,
+            itemFile,
             buffer,
             2,
             // 缩进级别
@@ -318,13 +309,14 @@ class XmlMerger {
 
   /// 检查目录是否只包含空文件夹（递归检查）
   static Future<bool> _isDirectoryOnlyEmptyFolders(
-    Directory dir,
+    UniFile dir,
     Map<String, ProjectItem> allItemsMap,
     Set<String> enabledExtensions,
   ) async {
     try {
-      await for (final entity in dir.list()) {
-        final entityPath = entity.path;
+      final entities = await dir.list();
+      for (final entity in entities) {
+        final entityPath = entity.getPath();
 
         // 检查此路径是否是一个显式的 ProjectItem
         final explicitItem = allItemsMap[entityPath];
@@ -338,13 +330,13 @@ class XmlMerger {
           continue;
         }
 
-        if (entity is File) {
+        if (await entity.isFile()) {
           // 如果找到任何文件，检查是否为代码文件或特殊文件
-          final fileName = _getFileName(entity.path);
-          if (isCodeFile(entity.path, enabledExtensions) || isSpecialFile(fileName)) {
+          final fileName = _getFileName(entity.getPath());
+          if (isCodeFile(entity.getPath(), enabledExtensions) || isSpecialFile(fileName)) {
             return false; // 找到了有效文件，不是空文件夹
           }
-        } else if (entity is Directory) {
+        } else if (await entity.isDir()) {
           // 递归检查子目录
           final hasValidContent = await _isDirectoryOnlyEmptyFolders(entity, allItemsMap, enabledExtensions);
           if (!hasValidContent) {
@@ -361,7 +353,7 @@ class XmlMerger {
 
   /// 递归处理目录（与 C++ 版本的 processDirectoryRecursive 对应）
   static Future<void> _processDirectoryRecursive(
-    Directory currentDir,
+    UniFile currentDir,
     StringBuffer buffer,
     int indentLevel,
     _MergeStats stats,
@@ -370,13 +362,14 @@ class XmlMerger {
     List<String> mergedFilePaths,
     Set<String> enabledExtensions,
   ) async {
-    final List<Directory> subdirs = [];
-    final List<File> files = [];
+    final List<UniFile> subdirs = [];
+    final List<UniFile> files = [];
 
     try {
       // 遍历目录中的所有条目
-      await for (final entity in currentDir.list()) {
-        final entityPath = entity.path;
+      final entities = await currentDir.list();
+      for (final entity in entities) {
+        final entityPath = entity.getPath();
 
         // **核心修改**: 检查此路径是否是一个显式的 ProjectItem
         final explicitItem = allItemsMap[entityPath];
@@ -386,7 +379,7 @@ class XmlMerger {
           // 它将由 _generateXmlContent 的主循环根据其自身的 enabled 和 isExclude 状态决定如何处理。
           if (explicitItem.isExclude ?? false) {
             log('${_indent(indentLevel)}跳过显式排除的项: ${_getFileName(entityPath)}');
-            if (entity is Directory)
+            if (await entity.isDir())
               stats.skippedDirs++;
             else
               stats.skippedFilesIgnored++;
@@ -398,7 +391,7 @@ class XmlMerger {
 
         // 如果不是显式条目，则走通用规则
         if (shouldIgnorePath(entityPath)) {
-          if (entity is Directory) {
+          if (await entity.isDir()) {
             stats.skippedDirs++;
             log('${_indent(indentLevel)}跳过忽略目录: ${_getFileName(entityPath)}');
           } else {
@@ -409,9 +402,9 @@ class XmlMerger {
         }
 
         // 分类条目（目录或文件）
-        if (entity is Directory) {
+        if (await entity.isDir()) {
           subdirs.add(entity);
-        } else if (entity is File) {
+        } else if (await entity.isFile()) {
           files.add(entity);
         } else {
           stats.skippedFilesIgnored++;
@@ -419,17 +412,17 @@ class XmlMerger {
         }
       }
     } catch (e) {
-      log('错误: 迭代目录时发生异常 ${currentDir.path}: $e');
+      log('错误: 迭代目录时发生异常 ${currentDir.getPath()}: $e');
       return;
     }
 
     // 按文件名排序（与 C++ 版本保持一致）
-    subdirs.sort((a, b) => _getFileName(a.path).compareTo(_getFileName(b.path)));
-    files.sort((a, b) => _getFileName(a.path).compareTo(_getFileName(b.path)));
+    subdirs.sort((a, b) => _getFileName(a.getPath()).compareTo(_getFileName(b.getPath())));
+    files.sort((a, b) => _getFileName(a.getPath()).compareTo(_getFileName(b.getPath())));
 
     // 先处理子目录
     for (final subdir in subdirs) {
-      final dirName = _getFileName(subdir.path);
+      final dirName = _getFileName(subdir.getPath());
 
       // 检查目录是否只包含空文件夹
       final isOnlyEmptyFolders = await _isDirectoryOnlyEmptyFolders(subdir, allItemsMap, enabledExtensions);
@@ -459,26 +452,18 @@ class XmlMerger {
 
     // 再处理文件
     for (final file in files) {
-      final fileName = _getFileName(file.path);
-      final extension = _getFileExtension(file.path);
+      final fileName = _getFileName(file.getPath());
 
       // 检查是否为代码文件或特殊文件（与 C++ 版本逻辑一致）
-      if (isCodeFile(file.path, enabledExtensions) || isSpecialFile(fileName)) {
+      if (isCodeFile(file.getPath(), enabledExtensions) || isSpecialFile(fileName)) {
         log('${_indent(indentLevel)}处理文件: $fileName');
 
         try {
-          String content;
-          try {
-            // 尝试以 UTF-8 读取
-            content = await file.readAsString(encoding: utf8);
-          } catch (e) {
-            // 如果 UTF-8 失败，尝试系统默认编码
-            final bytes = await file.readAsBytes();
-            content = String.fromCharCodes(bytes);
-          }
+          final contentBytes = await file.read();
+          String content = String.fromCharCodes(contentBytes);
 
           // 检查文件是否为空
-          if (content.isEmpty && await file.length() > 0) {
+          if (content.isEmpty && await file.getSize() > 0) {
             log('${_indent(indentLevel + 1)}警告: 文件 \'$fileName\' 读取内容为空或失败，跳过XML写入。');
             stats.skippedFilesIgnored++;
             continue;
@@ -519,9 +504,9 @@ class XmlMerger {
           buffer.writeln(']]>');
           buffer.writeln('${_indent(indentLevel)}</file>');
           stats.mergedFiles++;
-          mergedFilePaths.add(file.path);
+          mergedFilePaths.add(file.getPath());
         } catch (e) {
-          log('错误: 读取文件失败 ${file.path}: $e');
+          log('错误: 读取文件失败 ${file.getPath()}: $e');
           stats.skippedFilesIgnored++;
         }
       } else {

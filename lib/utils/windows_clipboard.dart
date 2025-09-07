@@ -2,6 +2,7 @@ import 'dart:ffi';
 import 'dart:io';
 import 'package:ffi/ffi.dart';
 import 'package:win32/win32.dart';
+import '../explorer/uni_file.dart';
 
 class WindowsClipboard {
   /// 将文件复制到 Windows 剪切板
@@ -12,8 +13,8 @@ class WindowsClipboard {
 
     try {
       // 检查文件是否存在
-      final file = File(filePath);
-      if (!await file.exists()) {
+      final file = LocalFile.create(filePath);
+      if (!await file.isFile()) {
         return false;
       }
 

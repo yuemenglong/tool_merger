@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:get/get.dart';
+import '../explorer/uni_file.dart';
 
 class FileExplorerUtils {
   /// 在文件资源管理器中打开并选中指定路径的文件或目录
@@ -10,10 +11,11 @@ class FileExplorerUtils {
       return;
     }
 
-    final uri = Uri.file(path);
     // 检查路径是否存在
-    final pathExists = await FileSystemEntity.type(path) != FileSystemEntityType.notFound;
-    if (!pathExists) {
+    final uniFile = LocalFile.create(path);
+    final isFile = await uniFile.isFile();
+    final isDir = await uniFile.isDir();
+    if (!isFile && !isDir) {
       Get.snackbar('错误', '路径不存在: $path', snackPosition: SnackPosition.BOTTOM);
       return;
     }
@@ -27,7 +29,7 @@ class FileExplorerUtils {
         await Process.run('open', ['-R', path]);
       } else if (Platform.isLinux) {
         // 在 Linux 上，可能需要根据不同的文件管理器调整，这里使用一个通用尝试
-        final parentDir = File(path).parent.path;
+        final parentDir = uniFile.getParent()?.getPath() ?? path;
         await Process.run('xdg-open', [parentDir]);
       }
     } catch (e) {
