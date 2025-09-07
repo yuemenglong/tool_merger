@@ -317,6 +317,7 @@ class XmlMerger {
       final entities = await dir.list();
       for (final entity in entities) {
         final entityPath = entity.getPath();
+        print("Exec: ${entityPath}");
 
         // 检查此路径是否是一个显式的 ProjectItem
         final explicitItem = allItemsMap[entityPath];
