@@ -12,7 +12,7 @@ class ProjectGenerationController extends GetxController {
   final RxBool isGenerating = false.obs;
   final Rx<GenerateStatus?> lastGenerateStatus = Rx<GenerateStatus?>(null);
   
-  ProjectDataController get _dataController => Get.find<ProjectDataController>();
+  ProjectDataController get _dataController => Get.find<ProjectDataController>(tag: 'projectData');
 
   Future<void> generateProject([Project? targetProject]) async {
     if (isGenerating.value) {
