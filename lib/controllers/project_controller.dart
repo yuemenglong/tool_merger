@@ -1,300 +1,81 @@
-import 'dart:convert';
-import 'dart:io';
 import 'package:get/get.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:desktop_drop/desktop_drop.dart';
 import 'package:cross_file/cross_file.dart';
 import '../entity/entity.dart';
-import '../services/xml_merger.dart';
-import '../utils/windows_clipboard.dart';
 import '../explorer/uni_file.dart';
-
-import '../views/extension_settings_page.dart';
+import 'project_data_controller.dart';
+import 'project_item_controller.dart';
+import 'project_extension_controller.dart';
+import 'project_generation_controller.dart';
+import 'sftp_controller.dart';
 
 class ProjectController extends GetxController {
-  // 响应式变量
-  final RxList<Project> projects = <Project>[].obs;
-  final Rx<Project?> selectedProject = Rx<Project?>(null);
-  final RxList<ProjectItem> currentItems = <ProjectItem>[].obs;
-  final Rx<ProjectItem?> selectedItem = Rx<ProjectItem?>(null);
   final RxString filterText = ''.obs;
   final RxString outputPath = ''.obs;
-  final RxString lastGenerateLog = ''.obs;
-  final RxBool isGenerating = false.obs;
-  final Rx<GenerateStatus?> lastGenerateStatus = Rx<GenerateStatus?>(null);
   
-  // SFTP Root 管理
-  final RxList<SftpFileRoot> sftpRoots = <SftpFileRoot>[].obs;
-  final Rx<SftpFileRoot?> selectedSftpRoot = Rx<SftpFileRoot?>(null);
+  // 子控制器
+  late final ProjectDataController _dataController;
+  late final ProjectItemController _itemController;
+  late final ProjectExtensionController _extensionController;
+  late final ProjectGenerationController _generationController;
+  late final SftpController _sftpController;
+
+  // 初始化子控制器
+  @override
+  void onInit() {
+    super.onInit();
+    _initializeControllers();
+  }
+  
+  void _initializeControllers() {
+    _dataController = Get.put(ProjectDataController(), tag: 'projectData');
+    _itemController = Get.put(ProjectItemController(), tag: 'projectItem');
+    _extensionController = Get.put(ProjectExtensionController(), tag: 'projectExtension');
+    _generationController = Get.put(ProjectGenerationController(), tag: 'projectGeneration');
+    _sftpController = Get.put(SftpController(), tag: 'sftp');
+    
+    // 监听选中项目变化，更新相关状态
+    ever(_dataController.selectedProject, (project) {
+      if (project != null) {
+        outputPath.value = project.outputPath ?? '';
+        _itemController.loadProjectItems();
+      } else {
+        outputPath.value = '';
+      }
+    });
+  }
 
   // 过滤后的项目列表
   List<Project> get filteredProjects {
     List<Project> result;
     if (filterText.value.isEmpty) {
-      result = projects.toList();
+      result = _dataController.projects.toList();
     } else {
-      result = projects.where((project) => 
+      result = _dataController.projects.where((project) => 
         project.name?.toLowerCase().contains(filterText.value.toLowerCase()) ?? false
       ).toList();
     }
-    // 按sortOrder排序
     result.sort((a, b) => (a.sortOrder ?? 0).compareTo(b.sortOrder ?? 0));
     return result;
   }
 
-  @override
-  void onInit() {
-    super.onInit();
-    loadProjects();
-    loadSftpRoots();
-  }
+  // 委托属性
+  RxList<Project> get projects => _dataController.projects;
+  Rx<Project?> get selectedProject => _dataController.selectedProject;
+  RxList<ProjectItem> get currentItems => _itemController.currentItems;
+  Rx<ProjectItem?> get selectedItem => _itemController.selectedItem;
+  RxString get lastGenerateLog => _generationController.lastGenerateLog;
+  RxBool get isGenerating => _generationController.isGenerating;
+  Rx<GenerateStatus?> get lastGenerateStatus => _generationController.lastGenerateStatus;
+  RxList<SftpFileRoot> get sftpRoots => _sftpController.sftpRoots;
+  Rx<SftpFileRoot?> get selectedSftpRoot => _sftpController.selectedSftpRoot;
 
-  // 加载项目数据
-  Future<void> loadProjects() async {
-    try {
-      final directory = await getApplicationDocumentsDirectory();
-      final file = LocalFile.create('${directory.path}/projects.json');
-      
-      if (await file.isFile()) {
-        final contentBytes = await file.read();
-        final jsonString = String.fromCharCodes(contentBytes);
-        final List<dynamic> jsonList = json.decode(jsonString);
-        projects.value = jsonList.map((json) => Project.fromJson(json)).toList();
-
-        // 数据迁移逻辑：为旧项目填充 targetExt
-        bool needsSave = false;
-        for (var project in projects) {
-          if (project.targetExt == null || project.targetExt!.isEmpty) {
-            _populateDefaultExtensions(project);
-            needsSave = true;
-          }
-        }
-        if (needsSave) {
-          await saveProjects();
-        }
-      } else {
-        // 如果文件不存在，创建示例数据
-        _createSampleData();
-      }
-    } catch (e) {
-      Get.snackbar('错误', '加载项目失败: $e');
-      _createSampleData();
-    }
-  }
-
-  // 保存项目数据
-  Future<void> saveProjects() async {
-    try {
-      final directory = await getApplicationDocumentsDirectory();
-      
-      final jsonList = projects.map((project) => project.toJson()).toList();
-      final content = json.encode(jsonList);
-      // Note: UniFile doesn't have writeAsString, but we can handle this by creating a temporary File for writing
-      final outputFile = File('${directory.path}/projects.json');
-      await outputFile.writeAsString(content);
-    } catch (e) {
-      Get.snackbar('错误', '保存项目失败: $e');
-    }
-  }
-
-  // 创建示例数据
-  void _createSampleData() {
-    projects.value = [
-      Project(
-        name: '示例项目1',
-        outputPath: '/path/to/output1',
-        sortOrder: 0,
-        createTime: DateTime.now().subtract(const Duration(days: 2)),
-        updateTime: DateTime.now().subtract(const Duration(hours: 1)),
-        items: [
-          ProjectItem(
-            name: 'file1.txt',
-            path: '/path/to/file1.txt',
-            enabled: true,
-            sortOrder: 0,
-            isExclude: false,
-          ),
-          ProjectItem(
-            name: 'file2.cpp',
-            path: '/path/to/file2.cpp',
-            enabled: false,
-            sortOrder: 1,
-            isExclude: false,
-          ),
-        ],
-      ),
-      Project(
-        name: '示例项目2',
-        outputPath: '/path/to/output2',
-        sortOrder: 1,
-        createTime: DateTime.now().subtract(const Duration(days: 1)),
-        updateTime: DateTime.now().subtract(const Duration(minutes: 30)),
-        items: [
-          ProjectItem(
-            name: 'document.md',
-            path: '/path/to/document.md',
-            enabled: true,
-            sortOrder: 0,
-            isExclude: false,
-          ),
-        ],
-      ),
-    ];
-  }
-
-  // 选择项目
-  void selectProject(Project project) {
-    selectedProject.value = project;
-    final items = project.items ?? [];
-    // 按sortOrder排序
-    items.sort((a, b) => (a.sortOrder ?? 0).compareTo(b.sortOrder ?? 0));
-    currentItems.value = items;
-    selectedItem.value = null;
-    outputPath.value = project.outputPath ?? '';
-  }
-
-  // 为项目填充默认后缀列表
-  void _populateDefaultExtensions(Project project) {
-    project.targetExt = XmlMerger.targetExt
-        .map((ext) => TargetExtension(ext: ext, enabled: true))
-        .toList();
-    project.targetExt?.sort((a, b) => a.ext.compareTo(b.ext));
-  }
-
-  // 打开后缀设置页面
-  void openExtensionSettings() {
-    if (selectedProject.value != null) {
-      Get.to(() => const ExtensionSettingsPage());
-    }
-  }
-
-  // 切换后缀启用状态
-  Future<void> toggleExtension(TargetExtension ext) async {
-    if (selectedProject.value == null) return;
-    ext.enabled = !ext.enabled;
-    selectedProject.value!.updateTime = DateTime.now();
-    selectedProject.refresh(); // 触发selectedProject的响应式更新
-    projects.refresh();
-    await saveProjects();
-  }
-
-  // 添加新后缀
-  Future<void> addExtension(String newExt) async {
-    if (selectedProject.value == null || newExt.trim().isEmpty) return;
-
-    String processedExt = newExt.trim().toLowerCase();
-    if (!processedExt.startsWith('.')) {
-      processedExt = '.$processedExt';
-    }
-
-    final exists = selectedProject.value!.targetExt?.any((e) => e.ext == processedExt) ?? false;
-    if (exists) {
-      Get.snackbar('错误', '后缀 "$processedExt" 已存在');
-      return;
-    }
-
-    selectedProject.value!.targetExt?.add(TargetExtension(ext: processedExt, enabled: true));
-    selectedProject.value!.targetExt?.sort((a, b) => a.ext.compareTo(b.ext));
-    selectedProject.value!.updateTime = DateTime.now();
-    selectedProject.refresh(); // 触发selectedProject的响应式更新
-    projects.refresh();
-    await saveProjects();
-    Get.snackbar('成功', '已添加后缀 "$processedExt"');
-  }
-
-  // 删除后缀
-  Future<void> deleteExtension(TargetExtension ext) async {
-    if (selectedProject.value == null) return;
-    selectedProject.value!.targetExt?.remove(ext);
-    selectedProject.value!.updateTime = DateTime.now();
-    selectedProject.refresh(); // 触发selectedProject的响应式更新
-    projects.refresh();
-    await saveProjects();
-  }
-
-  // 重置为默认后缀
-  Future<void> resetExtensionsToDefault() async {
-    if (selectedProject.value == null) return;
-    _populateDefaultExtensions(selectedProject.value!);
-    selectedProject.value!.updateTime = DateTime.now();
-    selectedProject.refresh(); // 触发selectedProject的响应式更新
-    projects.refresh();
-    await saveProjects();
-    Get.snackbar('成功', '已重置为默认后缀列表');
-  }
-
-  // 创建项目
-  Future<void> createProject(String name) async {
-    final newProject = Project(
-      name: name,
-      outputPath: '',
-      sortOrder: projects.length,
-      createTime: DateTime.now(),
-      updateTime: DateTime.now(),
-      items: [],
-    );
-
-    _populateDefaultExtensions(newProject);
-
-    projects.add(newProject);
-    await saveProjects();
-    selectProject(newProject);
-
-    Get.snackbar('成功', '项目 "$name" 创建成功');
-  }
-
-  // 删除项目
-  Future<void> deleteProject(Project project) async {
-    projects.remove(project);
-    
-    // 重新排序
-    for (int i = 0; i < projects.length; i++) {
-      projects[i].sortOrder = i;
-    }
-    
-    if (selectedProject.value == project) {
-      selectedProject.value = null;
-      currentItems.clear();
-      selectedItem.value = null;
-      outputPath.value = '';
-    }
-    
-    await saveProjects();
-    Get.snackbar('成功', '项目已删除');
-  }
-
-  // 向上移动项目
-  Future<void> moveProjectUp(Project project) async {
-    final index = projects.indexOf(project);
-    if (index > 0) {
-      projects.removeAt(index);
-      projects.insert(index - 1, project);
-      
-      // 重新排序
-      for (int i = 0; i < projects.length; i++) {
-        projects[i].sortOrder = i;
-      }
-      
-      await saveProjects();
-    }
-  }
-
-  // 向下移动项目
-  Future<void> moveProjectDown(Project project) async {
-    final index = projects.indexOf(project);
-    if (index < projects.length - 1) {
-      projects.removeAt(index);
-      projects.insert(index + 1, project);
-      
-      // 重新排序
-      for (int i = 0; i < projects.length; i++) {
-        projects[i].sortOrder = i;
-      }
-      
-      await saveProjects();
-    }
-  }
+  // 委托方法 - 项目数据管理
+  void selectProject(Project project) => _dataController.selectProject(project);
+  Future<void> createProject(String name) => _dataController.createProject(name);
+  Future<void> deleteProject(Project project) => _dataController.deleteProject(project);
+  Future<void> moveProjectUp(Project project) => _dataController.moveProjectUp(project);
+  Future<void> moveProjectDown(Project project) => _dataController.moveProjectDown(project);
 
   // 选择输出路径
   Future<void> selectOutputPath() async {
@@ -303,786 +84,95 @@ class ProjectController extends GetxController {
     String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
     
     if (selectedDirectory != null) {
-      selectedProject.value!.outputPath = selectedDirectory;
+      await _dataController.updateProjectOutputPath(selectedDirectory);
       outputPath.value = selectedDirectory;
-      selectedProject.value!.updateTime = DateTime.now();
-      await saveProjects();
     }
   }
 
-  // 添加目录到项目
-  Future<void> addDirectoriesToProject() async {
-    if (selectedProject.value == null) return;
-    
-    String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
-    
-    if (selectedDirectory != null) {
-      final dirName = selectedDirectory.split(RegExp(r'[/\\]')).last;
-      
-      // 检查是否已存在
-      final exists = currentItems.any((item) => item.path == selectedDirectory);
-      if (!exists) {
-        final newItem = ProjectItem(
-          name: dirName,
-          path: selectedDirectory,
-          enabled: true,
-          sortOrder: currentItems.length,
-        );
-        
-        currentItems.add(newItem);
-        selectedProject.value!.items = currentItems.toList();
-        selectedProject.value!.updateTime = DateTime.now();
-        
-        await saveProjects();
-        
-        // 检查目录类型并给出建议
-        String message = '已添加目录: $dirName';
-        if (XmlMerger.shouldIgnorePath(selectedDirectory)) {
-          message += '\n提示: 此目录路径可能应该被忽略';
-        }
-        
-        Get.snackbar('成功', message, duration: const Duration(seconds: 3));
-      } else {
-        Get.snackbar('提示', '所选目录已存在于项目中');
-      }
-    }
-  }
+  // 委托方法 - 项目项管理
+  Future<void> addDirectoriesToProject() => _itemController.addDirectoriesToProject();
 
-  // 添加文件到项目
-  Future<void> addFilesToProject() async {
-    if (selectedProject.value == null) return;
-    
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      allowMultiple: true,
-      type: FileType.any,
-    );
-    
-    if (result != null) {
-      int addedCount = 0;
-      
-      for (var file in result.files) {
-        if (file.path != null) {
-          final fileName = file.name;
-          final filePath = file.path!;
-          
-          // 检查是否已存在
-          final exists = currentItems.any((item) => item.path == filePath);
-          if (!exists) {
-                      final newItem = ProjectItem(
-            name: fileName,
-            path: filePath,
-            enabled: true,
-            sortOrder: currentItems.length,
-            isExclude: false,
-          );
-            
-            currentItems.add(newItem);
-            selectedProject.value!.items = currentItems.toList();
-            selectedProject.value!.updateTime = DateTime.now();
-            addedCount++;
-          }
-        }
-      }
-      
-      await saveProjects();
-      
-      if (addedCount > 0) {
-        Get.snackbar('成功', '已添加 $addedCount 个文件', duration: const Duration(seconds: 3));
-      } else {
-        Get.snackbar('提示', '所选文件已存在于项目中');
-      }
-    }
-  }
+  Future<void> addFilesToProject() => _itemController.addFilesToProject();
 
-  // 选择项目项
-  void selectItem(ProjectItem item) {
-    selectedItem.value = item;
-  }
+  void selectItem(ProjectItem item) => _itemController.selectItem(item);
 
-  // 切换项目项启用状态
-  Future<void> toggleItemEnabled(ProjectItem item) async {
-    item.enabled = !(item.enabled ?? false);
-    selectedProject.value!.updateTime = DateTime.now();
-    
-    // 手动触发UI更新
-    currentItems.refresh();
-    
-    await saveProjects();
-  }
+  Future<void> toggleItemEnabled(ProjectItem item) => _itemController.toggleItemEnabled(item);
 
-  // 切换项目项排除状态
-  Future<void> toggleItemExclude(ProjectItem item) async {
-    item.isExclude = !(item.isExclude ?? false);
-    selectedProject.value!.updateTime = DateTime.now();
-    
-    // 手动触发UI更新
-    currentItems.refresh();
-    
-    await saveProjects();
-  }
+  Future<void> toggleItemExclude(ProjectItem item) => _itemController.toggleItemExclude(item);
 
-  // 删除项目项
-  Future<void> deleteItem(ProjectItem item) async {
-    currentItems.remove(item);
-    selectedProject.value!.items = currentItems.toList();
-    
-    // 重新排序
-    for (int i = 0; i < currentItems.length; i++) {
-      currentItems[i].sortOrder = i;
-    }
-    
-    if (selectedItem.value == item) {
-      selectedItem.value = null;
-    }
-    
-    selectedProject.value!.updateTime = DateTime.now();
-    await saveProjects();
-    Get.snackbar('成功', '文件已删除');
-  }
+  Future<void> deleteItem(ProjectItem item) => _itemController.deleteItem(item);
 
-  // 向上移动项目项
-  Future<void> moveItemUp(ProjectItem item) async {
-    final index = currentItems.indexOf(item);
-    if (index > 0) {
-      currentItems.removeAt(index);
-      currentItems.insert(index - 1, item);
-      
-      // 重新排序
-      for (int i = 0; i < currentItems.length; i++) {
-        currentItems[i].sortOrder = i;
-      }
-      
-      selectedProject.value!.items = currentItems.toList();
-      selectedProject.value!.updateTime = DateTime.now();
-      await saveProjects();
-    }
-  }
+  Future<void> moveItemUp(ProjectItem item) => _itemController.moveItemUp(item);
 
-  // 向下移动项目项
-  Future<void> moveItemDown(ProjectItem item) async {
-    final index = currentItems.indexOf(item);
-    if (index < currentItems.length - 1) {
-      currentItems.removeAt(index);
-      currentItems.insert(index + 1, item);
-      
-      // 重新排序
-      for (int i = 0; i < currentItems.length; i++) {
-        currentItems[i].sortOrder = i;
-      }
-      
-      selectedProject.value!.items = currentItems.toList();
-      selectedProject.value!.updateTime = DateTime.now();
-      await saveProjects();
-    }
-  }
+  Future<void> moveItemDown(ProjectItem item) => _itemController.moveItemDown(item);
 
-  // 设置过滤文本
   void setFilterText(String text) {
     filterText.value = text;
   }
 
-  // 获取启用的项目项数量
-  int get enabledItemsCount {
-    return currentItems.where((item) => item.enabled == true).length;
-  }
+  int get enabledItemsCount => _itemController.enabledItemsCount;
 
-  // 处理拖拽文件/目录
-  Future<void> handleDroppedFiles(List<XFile> files) async {
-    if (selectedProject.value == null) {
-      Get.snackbar('提示', '请先选择一个项目');
-      return;
-    }
+  Future<void> handleDroppedFiles(List<XFile> files) => _itemController.handleDroppedFiles(files);
 
-    int addedCount = 0;
-    int ignoredCount = 0;
-
-    for (var file in files) {
-      final fileName = file.name;
-      final filePath = file.path;
-
-      // 检查是否已存在
-      final exists = currentItems.any((item) => item.path == filePath);
-      if (!exists) {
-        final newItem = ProjectItem(
-          name: fileName, // 使用文件或文件夹的名称
-          path: filePath,
-          enabled: true,
-          sortOrder: currentItems.length,
-          isExclude: false,
-        );
-
-        currentItems.add(newItem);
-        addedCount++;
-
-        // (可选) 检查并统计被忽略的路径
-        if (XmlMerger.shouldIgnorePath(filePath)) {
-          ignoredCount++;
-        }
-      }
-    }
-
-    // 如果有项目被添加，则更新并保存
-    if (addedCount > 0) {
-      selectedProject.value!.items = currentItems.toList();
-      selectedProject.value!.updateTime = DateTime.now();
-      await saveProjects();
-
-      // 构建并显示成功的提示消息
-      String message = '已添加 $addedCount 个项目 (文件/目录)';
-      if (ignoredCount > 0) {
-        message += '\n其中 $ignoredCount 个路径可能应该被忽略';
-      }
-      Get.snackbar('成功', message, duration: const Duration(seconds: 4));
-    } else {
-      Get.snackbar('提示', '所选项目均已存在');
-    }
-  }
-
-  // 新增：处理拖拽文件夹到项目列表以快速创建项目
   Future<void> handleProjectDropAndCreate(List<XFile> files) async {
-    // 1. 输入验证
-    if (files.isEmpty) {
-      return; // 没有拖入任何内容
-    }
+    if (files.isEmpty) return;
 
-    // 此功能只处理拖入的第一个项目，并确保它是一个文件夹
     final droppedFile = files.first;
     final filePath = droppedFile.path;
-
     final uniFile = LocalFile.create(filePath);
+    
     if (!await uniFile.isDir()) {
       Get.snackbar('创建失败', '请拖拽一个文件夹以快速创建项目。');
       return;
     }
 
-    // 2. 提取文件夹名作为项目名，并检查是否重复
-    final projectName = filePath.split(RegExp(r'[/\\]')).last; // Fixed RegExp
+    final projectName = filePath.split(RegExp(r'[/\\]')).last;
     final isDuplicate = projects.any((p) => p.name == projectName);
     if (isDuplicate) {
       Get.snackbar('创建失败', '名为 "$projectName" 的项目已存在。');
       return;
     }
 
-    // 3. 确定新项目的输出路径
-    // 规则：使用当前第一个项目的输出路径；若项目列表为空，则为空字符串。
-    final String defaultOutputPath = projects.isNotEmpty ? (projects.first.outputPath ?? '') : '';
-
-    // 4. 创建新的 ProjectItem
-    final newItem = ProjectItem(
-      name: projectName,
-      path: filePath,
-      enabled: true,
-      sortOrder: 0, // 因为是唯一的item，所以排序为0
-      isExclude: false,
-    );
-
-    // 5. 创建新的 Project
-    final newProject = Project(
-      name: projectName,
-      outputPath: defaultOutputPath,
-      sortOrder: projects.length, // 添加到列表末尾
-      createTime: DateTime.now(),
-      updateTime: DateTime.now(),
-      items: [newItem], // 将文件夹作为唯一的item
-    );
-
-    // 5.1. 为新项目填充默认后缀配置
-    _populateDefaultExtensions(newProject);
-
-    // 6. 添加到列表、保存并提供用户反馈
-    projects.add(newProject);
-    await saveProjects();
+    // Create the project first
+    await _dataController.createProject(projectName);
     
-    // (可选，但建议) 自动选中新创建的项目，提升用户体验
-    selectProject(newProject);
-
+    // Add the folder as an item by creating a ProjectItem manually
+    if (selectedProject.value != null) {
+      final newItem = ProjectItem(
+        name: projectName,
+        path: filePath,
+        enabled: true,
+        sortOrder: 0,
+        isExclude: false,
+      );
+      _itemController.currentItems.add(newItem);
+      selectedProject.value!.items = [newItem];
+      selectedProject.value!.updateTime = DateTime.now();
+      await _dataController.saveProjects();
+    }
+    
     Get.snackbar('成功', '项目 "$projectName" 已通过拖拽快速创建。');
   }
 
-  /// 从 FileStatusInfo 对象添加一个新的项目项
-  Future<void> addItemFromFileStatus(FileStatusInfo fileStatus) async {
-    // 1. 检查是否有选中的项目
-    if (selectedProject.value == null) {
-      Get.snackbar('操作失败', '请先选择一个项目。');
-      return;
-    }
+  Future<void> addItemFromFileStatus(FileStatusInfo fileStatus) => _itemController.addItemFromFileStatus(fileStatus);
 
-    final filePath = fileStatus.fullPath;
-    if (filePath == null || filePath.isEmpty) {
-      Get.snackbar('错误', '无效的文件路径。');
-      return;
-    }
+  // 委托方法 - 文件生成
+  Future<void> generateProject([Project? targetProject]) => _generationController.generateProject(targetProject);
 
-    // 2. 检查项目是否已存在
-    final exists = currentItems.any((item) => item.path == filePath);
-    if (exists) {
-      Get.snackbar('提示', '该文件已存在于当前项目中。');
-      return;
-    }
 
-    // 3. 创建新的 ProjectItem
-    final fileName = filePath.split(RegExp(r'[/\\]')).last;
-    final newItem = ProjectItem(
-      name: fileName,
-      path: filePath,
-      enabled: true, // 默认启用
-      sortOrder: currentItems.length,
-      isExclude: false, // 默认包含
-    );
+  // 委托方法 - SFTP 管理
+  void selectSftpRoot(SftpFileRoot? root) => _sftpController.selectSftpRoot(root);
+  Future<void> createSftpRoot(String name, String host, int port, String user, String password, String path) => 
+      _sftpController.createSftpRoot(name, host, port, user, password, path);
+  Future<void> deleteSftpRoot(SftpFileRoot root) => _sftpController.deleteSftpRoot(root);
+  Future<void> updateSftpRoot(SftpFileRoot root, String name, String host, int port, String user, String password, String path) => 
+      _sftpController.updateSftpRoot(root, name, host, port, user, password, path);
+  Future<void> toggleSftpRootEnabled(SftpFileRoot root) => _sftpController.toggleSftpRootEnabled(root);
 
-    // 4. 添加到列表并保存
-    currentItems.add(newItem);
-    selectedProject.value!.items = currentItems.toList();
-    selectedProject.value!.updateTime = DateTime.now();
-    await saveProjects();
-
-    // 5. 提供用户反馈
-    Get.snackbar('成功', '文件 "$fileName" 已添加到当前项目。');
-  }
-
-  // 生成项目合并文件
-  Future<void> generateProject([Project? targetProject]) async {
-    // 检查是否正在生成
-    if (isGenerating.value) {
-      return;
-    }
-
-    final project = targetProject ?? selectedProject.value;
-    if (project == null) {
-      Get.snackbar('错误', '请先选择一个项目');
-      return;
-    }
-    if (project.outputPath == null || project.outputPath!.isEmpty) {
-      Get.snackbar('错误', '请先设置输出路径');
-      return;
-    }
-
-    final projectItems = project.items ?? [];
-    final enabledItems = projectItems.where((item) => item.enabled == true && (item.isExclude ?? false) == false).toList();
-    if (enabledItems.isEmpty) {
-      Get.snackbar('错误', '没有启用的文件');
-      return;
-    }
-
-    // 设置生成状态
-    isGenerating.value = true;
-
-    final logBuffer = StringBuffer();
-    final startTime = DateTime.now();
-    
-    try {
-      logBuffer.writeln('=== Tool Merger Generate Log ===');
-      logBuffer.writeln('开始时间: ${startTime.toString()}');
-      logBuffer.writeln('项目名称: ${project.name}');
-      logBuffer.writeln('输出路径: ${project.outputPath}');
-      logBuffer.writeln('');
-      
-      // 显示启用的项目项详情
-      logBuffer.writeln('=== 项目项列表 ===');
-      logBuffer.writeln('总项目项数: ${projectItems.length}');
-      logBuffer.writeln('启用项目项数: ${enabledItems.length}');
-      logBuffer.writeln('');
-      
-      for (int i = 0; i < projectItems.length; i++) {
-        final item = projectItems[i];
-        final status = (item.enabled ?? false) ? '[启用]' : '[禁用]';
-        logBuffer.writeln('${i + 1}. $status ${item.name} -> ${item.path}');
-      }
-      logBuffer.writeln('');
-      
-      // 创建输出文件路径
-      logBuffer.writeln('=== 输出文件准备 ===');
-      final outputDir = Directory(project.outputPath!);
-      if (!await outputDir.exists()) {
-        await outputDir.create(recursive: true);
-        logBuffer.writeln('创建输出目录: ${project.outputPath}');
-      } else {
-        logBuffer.writeln('输出目录已存在: ${project.outputPath}');
-      }
-
-      final outputFilePath = '${project.outputPath}/${project.name}.xml';
-      logBuffer.writeln('输出文件路径: $outputFilePath');
-      logBuffer.writeln('');
-      
-      // 使用 XmlMerger 生成 XML 内容
-      logBuffer.writeln('=== XML 生成过程 ===');
-      logBuffer.writeln('开始调用 XmlMerger.mergeXml()...');
-      logBuffer.writeln('');
-      
-      // === 打印Project属性信息 ===
-      logBuffer.writeln('=== Project Properties Debug Info ===');
-      logBuffer.writeln('项目基本信息:');
-      logBuffer.writeln('  - 项目名称: ${project.name}');
-      logBuffer.writeln('  - 输出路径: ${project.outputPath}');
-      logBuffer.writeln('  - 创建时间: ${project.createTime}');
-      logBuffer.writeln('  - 更新时间: ${project.updateTime}');
-      logBuffer.writeln('  - 排序序号: ${project.sortOrder}');
-      logBuffer.writeln('');
-      
-      logBuffer.writeln('目标后缀配置:');
-      if (project.targetExt != null && project.targetExt!.isNotEmpty) {
-        logBuffer.writeln('  - 总数: ${project.targetExt!.length}');
-        final enabledExts = project.targetExt!.where((ext) => ext.enabled);
-        final disabledExts = project.targetExt!.where((ext) => !ext.enabled);
-        logBuffer.writeln('  - 启用: ${enabledExts.length} 个');
-        logBuffer.writeln('  - 禁用: ${disabledExts.length} 个');
-        
-        logBuffer.writeln('  - 启用的后缀:');
-        for (final ext in enabledExts) {
-          logBuffer.writeln('    * ${ext.ext}');
-        }
-        
-        if (disabledExts.isNotEmpty) {
-          logBuffer.writeln('  - 禁用的后缀:');
-          for (final ext in disabledExts) {
-            logBuffer.writeln('    * ${ext.ext} (disabled)');
-          }
-        }
-      } else {
-        logBuffer.writeln('  - 无目标后缀配置');
-      }
-      logBuffer.writeln('');
-      
-      logBuffer.writeln('项目项配置:');
-      if (project.items != null && project.items!.isNotEmpty) {
-        logBuffer.writeln('  - 总数: ${project.items!.length}');
-        final enabledItems = project.items!.where((item) => item.enabled == true);
-        final disabledItems = project.items!.where((item) => item.enabled != true);
-        logBuffer.writeln('  - 启用: ${enabledItems.length} 个');
-        logBuffer.writeln('  - 禁用: ${disabledItems.length} 个');
-        
-        logBuffer.writeln('  - 启用的项目项:');
-        for (final item in enabledItems) {
-          final includeExclude = (item.isExclude ?? false) ? '[exclude]' : '[include]';
-          logBuffer.writeln('    * ${item.name} -> ${item.path} $includeExclude');
-        }
-        
-        if (disabledItems.isNotEmpty) {
-          logBuffer.writeln('  - 禁用的项目项:');
-          for (final item in disabledItems) {
-            final includeExclude = (item.isExclude ?? false) ? '[exclude]' : '[include]';
-            logBuffer.writeln('    * ${item.name} -> ${item.path} $includeExclude (disabled)');
-          }
-        }
-      } else {
-        logBuffer.writeln('  - 无项目项配置');
-      }
-      logBuffer.writeln('===============================');
-      logBuffer.writeln('');
-      
-      final mergeResult = await XmlMerger.mergeXml(project, logCallback: (message) {
-        logBuffer.writeln(message);
-      });
-      final xmlContent = mergeResult.xmlContent;
-      logBuffer.writeln('');
-      logBuffer.writeln('XML 内容生成完成');
-      logBuffer.writeln('  - 内容大小: ${(xmlContent.length / 1024).toStringAsFixed(1)} KB');
-      logBuffer.writeln('  - 字符数: ${xmlContent.length}');
-      logBuffer.writeln('  - 行数: ${xmlContent.split('\n').length}');
-      logBuffer.writeln('');
-      
-      // 写入文件
-      logBuffer.writeln('=== 文件写入 ===');
-      final outputFile = File(outputFilePath);
-      await outputFile.writeAsString(xmlContent, encoding: utf8);
-      logBuffer.writeln('文件写入完成: $outputFilePath');
-      
-      // 验证写入的文件
-      bool clipboardSuccess = false;
-      final writtenFile = LocalFile.create(outputFilePath);
-      if (await writtenFile.isFile()) {
-        final fileSize = await writtenFile.getSize();
-        logBuffer.writeln('文件验证成功:');
-        logBuffer.writeln('  - 文件大小: ${(fileSize / 1024).toStringAsFixed(1)} KB');
-        logBuffer.writeln('  - 文件路径: $outputFilePath');
-        
-        // 将文件复制到剪切板 (仅 Windows)
-        logBuffer.writeln('');
-        logBuffer.writeln('=== 剪切板操作 ===');
-        if (Platform.isWindows) {
-          logBuffer.writeln('尝试将文件复制到剪切板...');
-          clipboardSuccess = await WindowsClipboard.copyFileToClipboard(outputFilePath);
-          if (clipboardSuccess) {
-            logBuffer.writeln('文件已复制到剪切板，可以使用 Ctrl+V 粘贴');
-          } else {
-            logBuffer.writeln('警告: 文件复制到剪切板失败');
-          }
-        } else {
-          logBuffer.writeln('跳过剪切板操作 (仅支持 Windows)');
-        }
-      } else {
-        logBuffer.writeln('警告: 文件写入后验证失败');
-      }
-      
-      final endTime = DateTime.now();
-      final duration = endTime.difference(startTime);
-      logBuffer.writeln('');
-      logBuffer.writeln('=== 生成完成 ===');
-      logBuffer.writeln('结束时间: ${endTime.toString()}');
-      logBuffer.writeln('总耗时: ${duration.inMilliseconds} ms (${(duration.inMilliseconds / 1000).toStringAsFixed(2)} 秒)');
-      logBuffer.writeln('生成状态: 成功');
-      logBuffer.writeln('处理统计:');
-      logBuffer.writeln('  - 启用项目项: ${enabledItems.length}');
-      logBuffer.writeln('  - 合并文件: ${mergeResult.mergedFilePaths.length} 个');
-      logBuffer.writeln('  - 输出文件: $outputFilePath');
-      
-      // 收集文件状态信息
-      logBuffer.writeln('');
-      logBuffer.writeln('=== 收集文件状态信息 ===');
-      final fileStatuses = await _collectFileStatuses(mergeResult.mergedFilePaths, logBuffer);
-      logBuffer.writeln('收集到 ${fileStatuses.length} 个文件的状态信息');
-      
-      // 保存生成状态信息
-      lastGenerateStatus.value = GenerateStatus(
-        generateTime: DateTime.now(),
-        projectName: project.name,
-        fileStatuses: fileStatuses,
-      );
-      
-      // 保存日志到全局变量
-      lastGenerateLog.value = logBuffer.toString();
-      
-      // 更新项目时间并保存
-      project.updateTime = DateTime.now();
-      await saveProjects();
-      
-      // 构建成功消息
-      String successMessage = '文件生成成功!\n路径: $outputFilePath\n大小: ${(xmlContent.length / 1024).toStringAsFixed(1)} KB';
-      
-      // 如果剪切板操作成功，添加提示
-      if (clipboardSuccess) {
-        successMessage += '\n\n文件已复制到剪切板，可使用 Ctrl+V 粘贴';
-      }
-      
-            Get.snackbar(
-        '成功', 
-        successMessage,
-        duration: const Duration(seconds: 5),
-      );
-    } catch (e, stackTrace) {
-      final endTime = DateTime.now();
-      final duration = endTime.difference(startTime);
-      logBuffer.writeln('');
-      logBuffer.writeln('=== 生成失败 ===');
-      logBuffer.writeln('结束时间: ${endTime.toString()}');
-      logBuffer.writeln('总耗时: ${duration.inMilliseconds} ms (${(duration.inMilliseconds / 1000).toStringAsFixed(2)} 秒)');
-      logBuffer.writeln('生成状态: 失败');
-      logBuffer.writeln('');
-      logBuffer.writeln('错误详情:');
-      logBuffer.writeln('  错误类型: ${e.runtimeType}');
-      logBuffer.writeln('  错误信息: $e');
-      logBuffer.writeln('');
-      logBuffer.writeln('堆栈跟踪:');
-      logBuffer.writeln(stackTrace.toString());
-      logBuffer.writeln('');
-      logBuffer.writeln('调试信息:');
-      logBuffer.writeln('  - 项目名称: ${project.name}');
-      logBuffer.writeln('  - 输出路径: ${project.outputPath}');
-      logBuffer.writeln('  - 启用项目项数: ${enabledItems.length}');
-      
-      // 保存错误日志到全局变量
-      lastGenerateLog.value = logBuffer.toString();
-      project.updateTime = DateTime.now();
-      await saveProjects();
-      
-      Get.snackbar('错误', '生成文件失败: $e');
-    } finally {
-      // 重置生成状态
-      isGenerating.value = false;
-    }
-  }
-
-  // 收集文件状态信息
-  Future<List<FileStatusInfo>> _collectFileStatuses(List<String> mergedFilePaths, StringBuffer logBuffer) async {
-    final List<FileStatusInfo> fileStatuses = [];
-    
-    for (final filePath in mergedFilePaths) {
-      if (filePath.isEmpty) continue;
-      
-      try {
-        final fileStatus = await _getFileStatus(filePath);
-        if (fileStatus != null) {
-          fileStatuses.add(fileStatus);
-          logBuffer.writeln('  文件: ${fileStatus.fullPath} (${fileStatus.fileSize} bytes, ${fileStatus.lineCount} lines)');
-        }
-      } catch (e) {
-        logBuffer.writeln('  错误: 无法处理 $filePath - $e');
-      }
-    }
-    
-    return fileStatuses;
-  }
-
-  // 获取单个文件的状态信息
-  Future<FileStatusInfo?> _getFileStatus(String filePath) async {
-    try {
-      final file = LocalFile.create(filePath);
-      if (!await file.isFile()) return null;
-      
-      final contentBytes = await file.read();
-      final content = String.fromCharCodes(contentBytes);
-      final lines = content.split('\n');
-      final fileSize = await file.getSize();
-      
-      // 获取文件扩展名
-      String? extension;
-      final lastDotIndex = filePath.lastIndexOf('.');
-      if (lastDotIndex != -1 && lastDotIndex < filePath.length - 1) {
-        extension = filePath.substring(lastDotIndex + 1);
-      }
-      
-      return FileStatusInfo(
-        fullPath: filePath,
-        extension: extension,
-        lineCount: lines.length,
-        fileSize: fileSize,
-        processTime: DateTime.now(),
-      );
-    } catch (e) {
-      return null;
-    }
-  }
-
-  // ===== SFTP Root 管理方法 =====
-  
-  // 加载 SFTP Root 数据
-  Future<void> loadSftpRoots() async {
-    try {
-      final directory = await getApplicationDocumentsDirectory();
-      final file = LocalFile.create('${directory.path}/sftp_roots.json');
-      
-      if (await file.isFile()) {
-        final contentBytes = await file.read();
-        final jsonString = String.fromCharCodes(contentBytes);
-        final List<dynamic> jsonList = json.decode(jsonString);
-        sftpRoots.value = jsonList.map((json) => SftpFileRoot.fromJson(json)).toList();
-        
-        // 如果有根目录且没有选中，默认选中第一个启用的
-        if (sftpRoots.isNotEmpty && selectedSftpRoot.value == null) {
-          final enabledRoot = sftpRoots.firstWhere(
-            (root) => root.enabled == true, 
-            orElse: () => sftpRoots.first
-          );
-          selectedSftpRoot.value = enabledRoot;
-        }
-      } else {
-        // 如果文件不存在，创建示例数据
-        _createSampleSftpRoots();
-      }
-    } catch (e) {
-      Get.snackbar('错误', '加载 SFTP 根目录失败: $e');
-      _createSampleSftpRoots();
-    }
-  }
-
-  // 保存 SFTP Root 数据
-  Future<void> saveSftpRoots() async {
-    try {
-      final directory = await getApplicationDocumentsDirectory();
-      
-      final jsonList = sftpRoots.map((root) => root.toJson()).toList();
-      final content = json.encode(jsonList);
-      final outputFile = File('${directory.path}/sftp_roots.json');
-      await outputFile.writeAsString(content);
-    } catch (e) {
-      Get.snackbar('错误', '保存 SFTP 根目录失败: $e');
-    }
-  }
-
-  // 创建示例 SFTP Root 数据
-  void _createSampleSftpRoots() {
-    sftpRoots.value = [
-      SftpFileRoot(
-        name: '开发服务器',
-        host: '192.168.1.100',
-        port: 22,
-        user: 'developer',
-        password: '',
-        path: '/home/developer/projects',
-        enabled: true,
-        createTime: DateTime.now().subtract(const Duration(days: 7)),
-        updateTime: DateTime.now().subtract(const Duration(hours: 2)),
-      ),
-      SftpFileRoot(
-        name: '测试服务器',
-        host: '192.168.1.101',
-        port: 22,
-        user: 'tester',
-        password: '',
-        path: '/opt/test',
-        enabled: false,
-        createTime: DateTime.now().subtract(const Duration(days: 3)),
-        updateTime: DateTime.now().subtract(const Duration(days: 1)),
-      ),
-    ];
-    
-    // 默认选中第一个启用的根目录
-    selectedSftpRoot.value = sftpRoots.first;
-  }
-
-  // 选择 SFTP Root
-  void selectSftpRoot(SftpFileRoot? root) {
-    selectedSftpRoot.value = root;
-  }
-
-  // 创建新的 SFTP Root
-  Future<void> createSftpRoot(String name, String host, int port, String user, String password, String path) async {
-    final newRoot = SftpFileRoot(
-      name: name,
-      host: host,
-      port: port,
-      user: user,
-      password: password,
-      path: path,
-      enabled: true,
-      createTime: DateTime.now(),
-      updateTime: DateTime.now(),
-    );
-
-    sftpRoots.add(newRoot);
-    await saveSftpRoots();
-    
-    // 自动选中新创建的根目录
-    selectedSftpRoot.value = newRoot;
-    
-    Get.snackbar('成功', 'SFTP 根目录 "$name" 创建成功');
-  }
-
-  // 删除 SFTP Root
-  Future<void> deleteSftpRoot(SftpFileRoot root) async {
-    sftpRoots.remove(root);
-    
-    // 如果删除的是当前选中的根目录，选择下一个可用的
-    if (selectedSftpRoot.value == root) {
-      selectedSftpRoot.value = sftpRoots.isNotEmpty ? sftpRoots.first : null;
-    }
-    
-    await saveSftpRoots();
-    Get.snackbar('成功', 'SFTP 根目录已删除');
-  }
-
-  // 更新 SFTP Root
-  Future<void> updateSftpRoot(SftpFileRoot root, String name, String host, int port, String user, String password, String path) async {
-    root.name = name;
-    root.host = host;
-    root.port = port;
-    root.user = user;
-    root.password = password;
-    root.path = path;
-    root.updateTime = DateTime.now();
-    
-    sftpRoots.refresh(); // 触发UI更新
-    await saveSftpRoots();
-    
-    Get.snackbar('成功', 'SFTP 根目录 "$name" 更新成功');
-  }
-
-  // 切换 SFTP Root 启用状态
-  Future<void> toggleSftpRootEnabled(SftpFileRoot root) async {
-    root.enabled = !(root.enabled ?? false);
-    root.updateTime = DateTime.now();
-    
-    sftpRoots.refresh();
-    await saveSftpRoots();
-  }
+  // 委托方法 - 扩展管理
+  void openExtensionSettings() => _extensionController.openExtensionSettings();
+  Future<void> toggleExtension(TargetExtension ext) => _extensionController.toggleExtension(ext);
+  Future<void> addExtension(String newExt) => _extensionController.addExtension(newExt);
+  Future<void> deleteExtension(TargetExtension ext) => _extensionController.deleteExtension(ext);
+  Future<void> resetExtensionsToDefault() => _extensionController.resetExtensionsToDefault();
 }
