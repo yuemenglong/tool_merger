@@ -33,7 +33,7 @@ class ProjectExtensionController extends GetxController {
 
     final exists = _dataController.selectedProject.value!.targetExt?.any((e) => e.ext == processedExt) ?? false;
     if (exists) {
-      Get.snackbar('错误', '后缀 "$processedExt" 已存在');
+      Get.snackbar('错误', '后缀 "$processedExt" 已存在', duration: const Duration(seconds: 1));
       return;
     }
 
@@ -43,7 +43,7 @@ class ProjectExtensionController extends GetxController {
     _dataController.selectedProject.refresh();
     _dataController.projects.refresh();
     await _dataController.saveProjects();
-    Get.snackbar('成功', '已添加后缀 "$processedExt"');
+    Get.snackbar('成功', '已添加后缀 "$processedExt"', duration: const Duration(seconds: 1));
   }
 
   Future<void> deleteExtension(TargetExtension ext) async {
@@ -64,7 +64,7 @@ class ProjectExtensionController extends GetxController {
     _dataController.selectedProject.refresh();
     _dataController.projects.refresh();
     await _dataController.saveProjects();
-    Get.snackbar('成功', '已重置为默认后缀列表');
+    Get.snackbar('成功', '已重置为默认后缀列表', duration: const Duration(seconds: 1));
   }
 
   void _populateDefaultExtensions(Project project) {

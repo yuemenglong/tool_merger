@@ -57,9 +57,9 @@ class ProjectItemController extends GetxController {
           message += '\n提示: 此目录路径可能应该被忽略';
         }
         
-        Get.snackbar('成功', message, duration: const Duration(seconds: 3));
+        Get.snackbar('成功', message, duration: const Duration(seconds: 1));
       } else {
-        Get.snackbar('提示', '所选目录已存在于项目中');
+        Get.snackbar('提示', '所选目录已存在于项目中', duration: const Duration(seconds: 1));
       }
     }
   }
@@ -102,9 +102,9 @@ class ProjectItemController extends GetxController {
       await _dataController.saveProjects();
       
       if (addedCount > 0) {
-        Get.snackbar('成功', '已添加 $addedCount 个文件', duration: const Duration(seconds: 3));
+        Get.snackbar('成功', '已添加 $addedCount 个文件', duration: const Duration(seconds: 1));
       } else {
-        Get.snackbar('提示', '所选文件已存在于项目中');
+        Get.snackbar('提示', '所选文件已存在于项目中', duration: const Duration(seconds: 1));
       }
     }
   }
@@ -143,7 +143,7 @@ class ProjectItemController extends GetxController {
     
     _dataController.selectedProject.value!.updateTime = DateTime.now();
     await _dataController.saveProjects();
-    Get.snackbar('成功', '文件已删除');
+    Get.snackbar('成功', '文件已删除', duration: const Duration(seconds: 1));
   }
 
   Future<void> moveItemUp(ProjectItem item) async {
@@ -180,7 +180,7 @@ class ProjectItemController extends GetxController {
 
   Future<void> handleDroppedFiles(List<XFile> files) async {
     if (_dataController.selectedProject.value == null) {
-      Get.snackbar('提示', '请先选择一个项目');
+      Get.snackbar('提示', '请先选择一个项目', duration: const Duration(seconds: 1));
       return;
     }
 
@@ -220,27 +220,27 @@ class ProjectItemController extends GetxController {
       if (ignoredCount > 0) {
         message += '\n其中 $ignoredCount 个路径可能应该被忽略';
       }
-      Get.snackbar('成功', message, duration: const Duration(seconds: 4));
+      Get.snackbar('成功', message, duration: const Duration(seconds: 1));
     } else {
-      Get.snackbar('提示', '所选项目均已存在');
+      Get.snackbar('提示', '所选项目均已存在', duration: const Duration(seconds: 1));
     }
   }
 
   Future<void> addItemFromFileStatus(FileStatusInfo fileStatus) async {
     if (_dataController.selectedProject.value == null) {
-      Get.snackbar('操作失败', '请先选择一个项目。');
+      Get.snackbar('操作失败', '请先选择一个项目。', duration: const Duration(seconds: 1));
       return;
     }
 
     final filePath = fileStatus.fullPath;
     if (filePath == null || filePath.isEmpty) {
-      Get.snackbar('错误', '无效的文件路径。');
+      Get.snackbar('错误', '无效的文件路径。', duration: const Duration(seconds: 1));
       return;
     }
 
     final exists = currentItems.any((item) => item.path == filePath);
     if (exists) {
-      Get.snackbar('提示', '该文件已存在于当前项目中。');
+      Get.snackbar('提示', '该文件已存在于当前项目中。', duration: const Duration(seconds: 1));
       return;
     }
 
@@ -259,6 +259,6 @@ class ProjectItemController extends GetxController {
     _dataController.selectedProject.value!.updateTime = DateTime.now();
     await _dataController.saveProjects();
 
-    Get.snackbar('成功', '文件 "$fileName" 已添加到当前项目。');
+    Get.snackbar('成功', '文件 "$fileName" 已添加到当前项目。', duration: const Duration(seconds: 1));
   }
 }

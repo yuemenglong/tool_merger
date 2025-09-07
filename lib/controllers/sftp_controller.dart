@@ -31,7 +31,7 @@ class SftpController extends GetxController {
         _createSampleSftpRoots();
       }
     } catch (e) {
-      Get.snackbar('错误', '加载 SFTP 根目录失败: $e');
+      Get.snackbar('错误', '加载 SFTP 根目录失败: $e', duration: const Duration(seconds: 1));
       _createSampleSftpRoots();
     }
   }
@@ -103,7 +103,7 @@ class SftpController extends GetxController {
       final file = LocalFile.create('${configDir.path}/sftp_roots.json');
       await _saveConfigToFile(file);
     } catch (e) {
-      Get.snackbar('错误', '保存 SFTP 根目录失败: $e');
+      Get.snackbar('错误', '保存 SFTP 根目录失败: $e', duration: const Duration(seconds: 1));
     }
   }
 
@@ -180,7 +180,7 @@ class SftpController extends GetxController {
     
     selectedSftpRoot.value = newRoot;
     
-    Get.snackbar('成功', 'SFTP 根目录 "$name" 创建成功');
+    Get.snackbar('成功', 'SFTP 根目录 "$name" 创建成功', duration: const Duration(seconds: 1));
   }
 
   Future<void> deleteSftpRoot(SftpFileRoot root) async {
@@ -191,7 +191,7 @@ class SftpController extends GetxController {
     }
     
     await saveSftpRoots();
-    Get.snackbar('成功', 'SFTP 根目录已删除');
+    Get.snackbar('成功', 'SFTP 根目录已删除', duration: const Duration(seconds: 1));
   }
 
   Future<void> updateSftpRoot(SftpFileRoot root, String name, String host, int port, String user, String password, String path) async {
@@ -206,7 +206,7 @@ class SftpController extends GetxController {
     sftpRoots.refresh();
     await saveSftpRoots();
     
-    Get.snackbar('成功', 'SFTP 根目录 "$name" 更新成功');
+    Get.snackbar('成功', 'SFTP 根目录 "$name" 更新成功', duration: const Duration(seconds: 1));
   }
 
   Future<void> toggleSftpRootEnabled(SftpFileRoot root) async {

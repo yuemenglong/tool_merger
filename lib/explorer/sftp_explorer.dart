@@ -120,7 +120,7 @@ class SftpExplorerController extends GetxController {
       _sortFiles();
     } catch (e) {
       _error.value = e.toString();
-      Get.snackbar('错误', '无法加载目录: $e', backgroundColor: Colors.red.withOpacity(0.7));
+      Get.snackbar('错误', '无法加载目录: $e', backgroundColor: Colors.red.withOpacity(0.7), duration: const Duration(seconds: 1));
     } finally {
       _isLoading.value = false;
     }
@@ -501,7 +501,7 @@ class SftpExplorer extends StatelessWidget {
       // 调用SFTP项目创建方法
       projectController.handleSftpProjectDropAndCreate(controller.selectedFiles);
     } catch (e) {
-      Get.snackbar('错误', '无法获取项目控制器: $e');
+      Get.snackbar('错误', '无法获取项目控制器: $e', duration: const Duration(seconds: 1));
     }
   }
 
@@ -514,7 +514,7 @@ class SftpExplorer extends StatelessWidget {
       // 调用SFTP文件添加方法
       projectController.handleSftpDroppedFiles(controller.selectedFiles);
     } catch (e) {
-      Get.snackbar('错误', '无法获取项目控制器: $e');
+      Get.snackbar('错误', '无法获取项目控制器: $e', duration: const Duration(seconds: 1));
     }
   }
 }

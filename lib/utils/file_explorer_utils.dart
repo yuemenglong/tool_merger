@@ -11,7 +11,7 @@ class FileExplorerUtils {
   /// [projectItem] 项目项对象，用于SFTP类型的路径处理
   static Future<void> openInExplorer(String? path, {ProjectItem? projectItem}) async {
     if (path == null || path.isEmpty) {
-      Get.snackbar('错误', '项目路径无效', snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar('错误', '项目路径无效', snackPosition: SnackPosition.BOTTOM, duration: const Duration(seconds: 1));
       return;
     }
 
@@ -26,7 +26,7 @@ class FileExplorerUtils {
     final isFile = await uniFile.isFile();
     final isDir = await uniFile.isDir();
     if (!isFile && !isDir) {
-      Get.snackbar('错误', '路径不存在: $path', snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar('错误', '路径不存在: $path', snackPosition: SnackPosition.BOTTOM, duration: const Duration(seconds: 1));
       return;
     }
 
@@ -43,7 +43,7 @@ class FileExplorerUtils {
         await Process.run('xdg-open', [parentDir]);
       }
     } catch (e) {
-      Get.snackbar('操作失败', '无法在资源管理器中打开路径: $e', snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar('操作失败', '无法在资源管理器中打开路径: $e', snackPosition: SnackPosition.BOTTOM, duration: const Duration(seconds: 1));
     }
   }
 
@@ -52,7 +52,7 @@ class FileExplorerUtils {
     if (projectItem.sftpHost == null || 
         projectItem.sftpUser == null || 
         projectItem.path == null) {
-      Get.snackbar('错误', 'SFTP连接信息不完整', snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar('错误', 'SFTP连接信息不完整', snackPosition: SnackPosition.BOTTOM, duration: const Duration(seconds: 1));
       return;
     }
 
@@ -101,7 +101,7 @@ class FileExplorerUtils {
       // 导航到SFTP浏览器页面
       await Get.to(() => const SftpExplorerPage(), arguments: sftpRoot);
     } catch (e) {
-      Get.snackbar('操作失败', '无法打开SFTP路径: $e', snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar('操作失败', '无法打开SFTP路径: $e', snackPosition: SnackPosition.BOTTOM, duration: const Duration(seconds: 1));
     }
   }
 }

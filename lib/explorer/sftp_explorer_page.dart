@@ -243,7 +243,7 @@ class _SftpExplorerPageState extends State<SftpExplorerPage> {
     }
 
     if (root.enabled != true) {
-      Get.snackbar('错误', '连接已禁用，请先启用此连接');
+      Get.snackbar('错误', '连接已禁用，请先启用此连接', duration: const Duration(seconds: 1));
       return;
     }
 
@@ -251,15 +251,15 @@ class _SftpExplorerPageState extends State<SftpExplorerPage> {
     
     try {
       await explorerController.connectToSftp(root);
-      Get.snackbar('成功', '已连接到 ${root.name}');
+      Get.snackbar('成功', '已连接到 ${root.name}', duration: const Duration(seconds: 1));
     } catch (e) {
-      Get.snackbar('连接失败', e.toString(), backgroundColor: Colors.red.withOpacity(0.7));
+      Get.snackbar('连接失败', e.toString(), backgroundColor: Colors.red.withOpacity(0.7), duration: const Duration(seconds: 1));
     }
   }
 
   void _disconnect() {
     sftpController.selectSftpRoot(null);
-    Get.snackbar('已断开', '已断开SFTP连接');
+    Get.snackbar('已断开', '已断开SFTP连接', duration: const Duration(seconds: 1));
   }
 
   void _showAddConnectionDialog() {
@@ -362,7 +362,7 @@ class _SftpExplorerPageState extends State<SftpExplorerPage> {
               final path = pathController.text.trim();
 
               if (name.isEmpty || host.isEmpty || user.isEmpty) {
-                Get.snackbar('错误', '请填写所有必要信息');
+                Get.snackbar('错误', '请填写所有必要信息', duration: const Duration(seconds: 1));
                 return;
               }
 

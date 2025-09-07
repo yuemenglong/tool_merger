@@ -36,7 +36,7 @@ class ProjectDataController extends GetxController {
         _createSampleData();
       }
     } catch (e) {
-      Get.snackbar('错误', '加载项目失败: $e');
+      Get.snackbar('错误', '加载项目失败: $e', duration: const Duration(seconds: 1));
       _createSampleData();
     }
   }
@@ -78,7 +78,7 @@ class ProjectDataController extends GetxController {
       final file = LocalFile.create('${configDir.path}/projects.json');
       await _saveProjectsToFile(file);
     } catch (e) {
-      Get.snackbar('错误', '保存项目失败: $e');
+      Get.snackbar('错误', '保存项目失败: $e', duration: const Duration(seconds: 1));
     }
   }
 
@@ -153,7 +153,7 @@ class ProjectDataController extends GetxController {
     await saveProjects();
     selectProject(newProject);
 
-    Get.snackbar('成功', '项目 "$name" 创建成功');
+    Get.snackbar('成功', '项目 "$name" 创建成功', duration: const Duration(seconds: 1));
   }
 
   Future<void> deleteProject(Project project) async {
@@ -168,7 +168,7 @@ class ProjectDataController extends GetxController {
     }
     
     await saveProjects();
-    Get.snackbar('成功', '项目已删除');
+    Get.snackbar('成功', '项目已删除', duration: const Duration(seconds: 1));
   }
 
   Future<void> moveProjectUp(Project project) async {

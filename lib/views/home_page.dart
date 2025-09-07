@@ -311,7 +311,7 @@ class ToolMergerHomePage extends StatelessWidget {
                 final path = pathController.text.trim();
 
                 if (name.isEmpty || host.isEmpty || user.isEmpty) {
-                  Get.snackbar('错误', '请填写必要的字段（名称、主机地址、用户名）');
+                  Get.snackbar('错误', '请填写必要的字段（名称、主机地址、用户名）', duration: const Duration(seconds: 1));
                   return;
                 }
 
@@ -319,7 +319,7 @@ class ToolMergerHomePage extends StatelessWidget {
                 try {
                   port = int.parse(portText.isEmpty ? '22' : portText);
                 } catch (e) {
-                  Get.snackbar('错误', '端口必须是有效的数字');
+                  Get.snackbar('错误', '端口必须是有效的数字', duration: const Duration(seconds: 1));
                   return;
                 }
 

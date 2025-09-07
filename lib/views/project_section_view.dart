@@ -574,7 +574,7 @@ class ProjectSectionView extends StatelessWidget {
           TextButton(
             onPressed: () {
               Clipboard.setData(ClipboardData(text: controller.lastGenerateLog.value));
-              Get.snackbar('复制成功', '日志已复制到剪贴板');
+              Get.snackbar('复制成功', '日志已复制到剪贴板', duration: const Duration(seconds: 1));
             },
             child: const Text('复制'),
           ),

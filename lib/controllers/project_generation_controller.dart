@@ -21,18 +21,18 @@ class ProjectGenerationController extends GetxController {
 
     final project = targetProject ?? _dataController.selectedProject.value;
     if (project == null) {
-      Get.snackbar('错误', '请先选择一个项目');
+      Get.snackbar('错误', '请先选择一个项目', duration: const Duration(seconds: 1));
       return;
     }
     if (project.outputPath == null || project.outputPath!.isEmpty) {
-      Get.snackbar('错误', '请先设置输出路径');
+      Get.snackbar('错误', '请先设置输出路径', duration: const Duration(seconds: 1));
       return;
     }
 
     final projectItems = project.items ?? [];
     final enabledItems = projectItems.where((item) => item.enabled == true && (item.isExclude ?? false) == false).toList();
     if (enabledItems.isEmpty) {
-      Get.snackbar('错误', '没有启用的文件');
+      Get.snackbar('错误', '没有启用的文件', duration: const Duration(seconds: 1));
       return;
     }
 
@@ -215,7 +215,7 @@ class ProjectGenerationController extends GetxController {
       Get.snackbar(
         '成功', 
         successMessage,
-        duration: const Duration(seconds: 5),
+        duration: const Duration(seconds: 1),
       );
     } catch (e, stackTrace) {
       final endTime = DateTime.now();
@@ -242,7 +242,7 @@ class ProjectGenerationController extends GetxController {
       project.updateTime = DateTime.now();
       await _dataController.saveProjects();
       
-      Get.snackbar('错误', '生成文件失败: $e');
+      Get.snackbar('错误', '生成文件失败: $e', duration: const Duration(seconds: 1));
     } finally {
       isGenerating.value = false;
     }

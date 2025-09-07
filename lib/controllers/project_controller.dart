@@ -123,14 +123,14 @@ class ProjectController extends GetxController {
     final uniFile = LocalFile.create(filePath);
     
     if (!await uniFile.isDir()) {
-      Get.snackbar('创建失败', '请拖拽一个文件夹以快速创建项目。');
+      Get.snackbar('创建失败', '请拖拽一个文件夹以快速创建项目。', duration: const Duration(seconds: 1));
       return;
     }
 
     final projectName = filePath.split(RegExp(r'[/\\]')).last;
     final isDuplicate = projects.any((p) => p.name == projectName);
     if (isDuplicate) {
-      Get.snackbar('创建失败', '名为 "$projectName" 的项目已存在。');
+      Get.snackbar('创建失败', '名为 "$projectName" 的项目已存在。', duration: const Duration(seconds: 1));
       return;
     }
 
@@ -152,7 +152,7 @@ class ProjectController extends GetxController {
       await _dataController.saveProjects();
     }
     
-    Get.snackbar('成功', '项目 "$projectName" 已通过拖拽快速创建。');
+    Get.snackbar('成功', '项目 "$projectName" 已通过拖拽快速创建。', duration: const Duration(seconds: 1));
   }
 
   Future<void> addItemFromFileStatus(FileStatusInfo fileStatus) => _itemController.addItemFromFileStatus(fileStatus);
@@ -185,14 +185,14 @@ class ProjectController extends GetxController {
     final uniFile = selectedSftpFile.file;
     
     if (!selectedSftpFile.isDirectory) {
-      Get.snackbar('创建失败', '请选择一个文件夹以快速创建项目。');
+      Get.snackbar('创建失败', '请选择一个文件夹以快速创建项目。', duration: const Duration(seconds: 1));
       return;
     }
 
     final projectName = uniFile.getName();
     final isDuplicate = projects.any((p) => p.name == projectName);
     if (isDuplicate) {
-      Get.snackbar('创建失败', '名为 "$projectName" 的项目已存在。');
+      Get.snackbar('创建失败', '名为 "$projectName" 的项目已存在。', duration: const Duration(seconds: 1));
       return;
     }
 
@@ -219,12 +219,12 @@ class ProjectController extends GetxController {
       await _dataController.saveProjects();
     }
     
-    Get.snackbar('成功', '项目 "$projectName" 已通过SFTP文件快速创建。');
+    Get.snackbar('成功', '项目 "$projectName" 已通过SFTP文件快速创建。', duration: const Duration(seconds: 1));
   }
 
   Future<void> handleSftpDroppedFiles(List<SftpFileInfo> sftpFiles) async {
     if (selectedProject.value == null) {
-      Get.snackbar('提示', '请先选择一个项目');
+      Get.snackbar('提示', '请先选择一个项目', duration: const Duration(seconds: 1));
       return;
     }
 
@@ -262,9 +262,9 @@ class ProjectController extends GetxController {
       selectedProject.value!.updateTime = DateTime.now();
       await _dataController.saveProjects();
 
-      Get.snackbar('成功', '已添加 $addedCount 个SFTP项目 (文件/目录)', duration: const Duration(seconds: 4));
+      Get.snackbar('成功', '已添加 $addedCount 个SFTP项目 (文件/目录)', duration: const Duration(seconds: 1));
     } else {
-      Get.snackbar('提示', '所选项目均已存在');
+      Get.snackbar('提示', '所选项目均已存在', duration: const Duration(seconds: 1));
     }
   }
 }
