@@ -98,6 +98,9 @@ class SftpFile extends UniFile {
   final String _user;
   final String _password;
   final String _path;
+  final bool? _isDirectory;
+  final int? _size;
+  final DateTime? _modifiedTime;
 
   SftpFile._({
     required String host,
@@ -105,11 +108,17 @@ class SftpFile extends UniFile {
     required String user,
     required String password,
     required String path,
+    bool? isDirectory,
+    int? size,
+    DateTime? modifiedTime,
   })  : _host = host,
         _port = port,
         _user = user,
         _password = password,
-        _path = path;
+        _path = path,
+        _isDirectory = isDirectory,
+        _size = size,
+        _modifiedTime = modifiedTime;
 
   static SftpFile create(String host, int port, String user, String password, String path) {
     return SftpFile._(
@@ -118,6 +127,28 @@ class SftpFile extends UniFile {
       user: user,
       password: password,
       path: path,
+    );
+  }
+
+  static SftpFile createWithCache(
+    String host, 
+    int port, 
+    String user, 
+    String password, 
+    String path, {
+    bool? isDirectory,
+    int? size,
+    DateTime? modifiedTime,
+  }) {
+    return SftpFile._(
+      host: host,
+      port: port,
+      user: user,
+      password: password,
+      path: path,
+      isDirectory: isDirectory,
+      size: size,
+      modifiedTime: modifiedTime,
     );
   }
 
@@ -153,7 +184,19 @@ class SftpFile extends UniFile {
       final files = await sftp.listdir(_path);
       return files.map((item) {
         final itemPath = _path.endsWith('/') ? '$_path${item.filename}' : '$_path/${item.filename}';
-        return SftpFile.create(_host, _port, _user, _password, itemPath);
+        
+        return SftpFile.createWithCache(
+          _host, 
+          _port, 
+          _user, 
+          _password, 
+          itemPath,
+          isDirectory: item.attr.isDirectory,
+          size: item.attr.size,
+          modifiedTime: item.attr.modifyTime != null 
+            ? DateTime.fromMillisecondsSinceEpoch(item.attr.modifyTime! * 1000) 
+            : null,
+        );
       }).toList();
     } finally {
       client.close();
@@ -162,6 +205,10 @@ class SftpFile extends UniFile {
 
   @override
   Future<bool> isDir() async {
+    if (_isDirectory != null) {
+      return _isDirectory!;
+    }
+    
     final client = SSHClient(
       await SSHSocket.connect(_host, _port),
       username: _user,
@@ -181,6 +228,10 @@ class SftpFile extends UniFile {
 
   @override
   Future<bool> isFile() async {
+    if (_isDirectory != null) {
+      return !_isDirectory!;
+    }
+    
     final client = SSHClient(
       await SSHSocket.connect(_host, _port),
       username: _user,
@@ -210,6 +261,10 @@ class SftpFile extends UniFile {
 
   @override
   Future<int> getSize() async {
+    if (_size != null) {
+      return _size!;
+    }
+    
     final client = SSHClient(
       await SSHSocket.connect(_host, _port),
       username: _user,
@@ -233,5 +288,9 @@ class SftpFile extends UniFile {
     if (parts.length <= 1) return null;
     final parentPath = parts.sublist(0, parts.length - 1).join('/');
     return SftpFile.create(_host, _port, _user, _password, parentPath.isEmpty ? '/' : parentPath);
+  }
+
+  DateTime? getModifiedTime() {
+    return _modifiedTime;
   }
 }

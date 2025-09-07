@@ -98,6 +98,11 @@ class SftpExplorerController extends GetxController {
       for (final file in fileList) {
         final isDir = await file.isDir();
         final size = isDir ? 0 : await file.getSize();
+        DateTime? modifiedTime;
+        
+        if (file is SftpFile) {
+          modifiedTime = file.getModifiedTime();
+        }
         
         fileInfoList.add(SftpFileInfo(
           file: file,
@@ -105,6 +110,7 @@ class SftpExplorerController extends GetxController {
           size: size,
           name: file.getName(),
           path: file.getPath(),
+          modifiedTime: modifiedTime,
         ));
       }
 
