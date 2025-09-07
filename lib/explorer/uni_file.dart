@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:dartssh2/dartssh2.dart';
 
 abstract class UniFile {
   /*定义常见的文件操作(只读)，如
@@ -90,7 +91,7 @@ class LocalFile extends UniFile {
   }
 
   static LocalFile create(String path) {
-    /*TODO*/
+    return LocalFile(path);
   }
 }
 
@@ -125,39 +126,79 @@ class SftpFile extends UniFile {
 
   @override
   Future<Uint8List> read() async {
-    // TODO: 需要添加SSH库依赖 (如 ssh2 或 dartssh2) 来实现SFTP文件读取
-    // 示例实现:
-    // final client = SSHClient();
-    // await client.connect(host: _host, port: _port, username: _user, password: _password);
-    // final sftp = await client.sftp();
-    // final data = await sftp.readFile(_path);
-    // await client.disconnect();
-    // return data;
-    throw UnimplementedError('SFTP read requires SSH library dependency');
+    final client = SSHClient(
+      await SSHSocket.connect(_host, _port),
+      username: _user,
+      onPasswordRequest: () => _password,
+    );
+    
+    try {
+      final sftp = await client.sftp();
+      final file = await sftp.open(_path);
+      final data = await file.readBytes();
+      await file.close();
+      return Uint8List.fromList(data);
+    } finally {
+      client.close();
+    }
   }
 
   @override
   Future<List<UniFile>> list() async {
-    // TODO: 实现SFTP目录列表
-    // final client = SSHClient();
-    // await client.connect(host: _host, port: _port, username: _user, password: _password);
-    // final sftp = await client.sftp();
-    // final files = await sftp.listDirectory(_path);
-    // await client.disconnect();
-    // return files.map((f) => SftpFile.create(_host, _port, _user, _password, f.path)).toList();
-    throw UnimplementedError('SFTP list requires SSH library dependency');
+    final client = SSHClient(
+      await SSHSocket.connect(_host, _port),
+      username: _user,
+      onPasswordRequest: () => _password,
+    );
+    
+    try {
+      final sftp = await client.sftp();
+      final files = await sftp.listdir(_path);
+      return files.map((item) {
+        final itemPath = _path.endsWith('/') ? '$_path${item.filename}' : '$_path/${item.filename}';
+        return SftpFile.create(_host, _port, _user, _password, itemPath);
+      }).toList();
+    } finally {
+      client.close();
+    }
   }
 
   @override
   Future<bool> isDir() async {
-    // TODO: 实现SFTP目录检查
-    throw UnimplementedError('SFTP isDir requires SSH library dependency');
+    final client = SSHClient(
+      await SSHSocket.connect(_host, _port),
+      username: _user,
+      onPasswordRequest: () => _password,
+    );
+    
+    try {
+      final sftp = await client.sftp();
+      final stat = await sftp.stat(_path);
+      return stat.isDirectory;
+    } catch (e) {
+      return false;
+    } finally {
+      client.close();
+    }
   }
 
   @override
   Future<bool> isFile() async {
-    // TODO: 实现SFTP文件检查
-    throw UnimplementedError('SFTP isFile requires SSH library dependency');
+    final client = SSHClient(
+      await SSHSocket.connect(_host, _port),
+      username: _user,
+      onPasswordRequest: () => _password,
+    );
+    
+    try {
+      final sftp = await client.sftp();
+      final stat = await sftp.stat(_path);
+      return stat.isFile;
+    } catch (e) {
+      return false;
+    } finally {
+      client.close();
+    }
   }
 
   @override
@@ -172,8 +213,21 @@ class SftpFile extends UniFile {
 
   @override
   Future<int> getSize() async {
-    // TODO: 实现SFTP文件大小获取
-    throw UnimplementedError('SFTP getSize requires SSH library dependency');
+    final client = SSHClient(
+      await SSHSocket.connect(_host, _port),
+      username: _user,
+      onPasswordRequest: () => _password,
+    );
+    
+    try {
+      final sftp = await client.sftp();
+      final stat = await sftp.stat(_path);
+      return stat.size ?? 0;
+    } catch (e) {
+      return 0;
+    } finally {
+      client.close();
+    }
   }
 
   @override
