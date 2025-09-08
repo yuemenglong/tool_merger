@@ -176,14 +176,6 @@ class XmlMerger {
             indentLevel: 1, // 根级文件
           ));
         } else if (await itemFile.isDir()) {
-          // 检查目录是否只包含空文件夹
-          final isOnlyEmptyFolders = await _isDirectoryOnlyEmptyFolders(itemFile, allItemsMap, enabledExtensions);
-          if (isOnlyEmptyFolders) {
-            log('跳过空目录: ${item.name} (只包含空文件夹)');
-            taskCollection.stats.skippedDirs++;
-            continue;
-          }
-
           log('收集目录任务: ${item.name} (${itemPath})');
           
           // 添加目录任务
@@ -490,16 +482,6 @@ class XmlMerger {
           mergedFilePaths.add(itemPath);
         } else if (await itemFile.isDir()) {
           // 处理目录
-          log('检查目录: ${item.name} (${itemPath})');
-
-          // 检查目录是否只包含空文件夹
-          final isOnlyEmptyFolders = await _isDirectoryOnlyEmptyFolders(itemFile, allItemsMap, enabledExtensions);
-          if (isOnlyEmptyFolders) {
-            log('跳过空目录: ${item.name} (只包含空文件夹)');
-            stats.skippedDirs++;
-            continue;
-          }
-
           log('处理目录: ${item.name} (${itemPath})');
 
           // 为每个根目录创建一个 <dir> 元素
@@ -561,50 +543,6 @@ class XmlMerger {
     return content;
   }
 
-  /// 检查目录是否只包含空文件夹（递归检查）
-  static Future<bool> _isDirectoryOnlyEmptyFolders(
-    UniFile dir,
-    Map<String, ProjectItem> allItemsMap,
-    Set<String> enabledExtensions,
-  ) async {
-    try {
-      final entities = await dir.list();
-      for (final entity in entities) {
-        final entityPath = entity.getPath();
-        print("Exec: ${entityPath}");
-
-        // 检查此路径是否是一个显式的 ProjectItem
-        final explicitItem = allItemsMap[entityPath];
-        if (explicitItem != null) {
-          // 如果一个路径在 items 列表中有显式条目，跳过它
-          continue;
-        }
-
-        // 跳过应该被忽略的路径
-        if (shouldIgnorePath(entityPath)) {
-          continue;
-        }
-
-        if (await entity.isFile()) {
-          // 如果找到任何文件，检查是否为代码文件或特殊文件
-          final fileName = _getFileName(entity.getPath());
-          if (isCodeFile(entity.getPath(), enabledExtensions) || isSpecialFile(fileName)) {
-            return false; // 找到了有效文件，不是空文件夹
-          }
-        } else if (await entity.isDir()) {
-          // 递归检查子目录
-          final hasValidContent = await _isDirectoryOnlyEmptyFolders(entity, allItemsMap, enabledExtensions);
-          if (!hasValidContent) {
-            return false; // 子目录包含有效内容
-          }
-        }
-      }
-      return true; // 只包含空文件夹或没有内容
-    } catch (e) {
-      // 如果检查失败，保守地认为目录不为空
-      return false;
-    }
-  }
 
   /// 递归收集目录任务
   static Future<void> _collectDirectoryTasksRecursive(
@@ -674,14 +612,6 @@ class XmlMerger {
     // 先收集子目录任务
     for (final subdir in subdirs) {
       final dirName = _getFileName(subdir.getPath());
-
-      // 检查目录是否只包含空文件夹
-      final isOnlyEmptyFolders = await _isDirectoryOnlyEmptyFolders(subdir, allItemsMap, enabledExtensions);
-      if (isOnlyEmptyFolders) {
-        log('${_indent(indentLevel)}跳过空目录: $dirName (只包含空文件夹)');
-        taskCollection.stats.skippedDirs++;
-        continue;
-      }
 
       log('${_indent(indentLevel)}收集目录任务: $dirName');
       
@@ -801,14 +731,6 @@ class XmlMerger {
     // 先处理子目录
     for (final subdir in subdirs) {
       final dirName = _getFileName(subdir.getPath());
-
-      // 检查目录是否只包含空文件夹
-      final isOnlyEmptyFolders = await _isDirectoryOnlyEmptyFolders(subdir, allItemsMap, enabledExtensions);
-      if (isOnlyEmptyFolders) {
-        log('${_indent(indentLevel)}跳过空目录: $dirName (只包含空文件夹)');
-        stats.skippedDirs++;
-        continue;
-      }
 
       log('${_indent(indentLevel)}处理目录: $dirName');
       buffer.writeln('${_indent(indentLevel)}<dir name="${_escapeXmlAttribute(dirName)}">');
