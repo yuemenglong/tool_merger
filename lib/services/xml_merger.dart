@@ -4,54 +4,13 @@ import '../explorer/uni_file.dart';
 class XmlMerger {
   // 代码文件扩展名（与 C++ 版本保持一致）
   // 公开默认后缀集合
-  static const Set<String> targetExt = {
-    '.c',
-    '.cpp',
-    '.h',
-    '.hpp',
-    '.cc',
-    '.cxx',
-    '.hxx',
-    '.java',
-    '.py',
-    '.js',
-    '.jsx',
-    '.ts',
-    '.tsx',
-    '.go',
-    '.dart',
-    '.kt',
-    '.kts',
-    '.cs',
-    '.gradle',
-    '.properties',
-    '.yml',
-    '.yaml',
-    '.mdc',
-    '.rs',
-    ".sh",
-    ".cnf",
-    '.proto',
-    ".md"
-  };
+  static const Set<String> targetExt = {'.c', '.cpp', '.h', '.hpp', '.cc', '.cxx', '.hxx', '.java', '.py', '.js', '.jsx', '.ts', '.tsx', '.go', '.dart', '.kt', '.kts', '.cs', '.gradle', '.properties', '.yml', '.yaml', '.mdc', '.rs', ".sh", ".cnf", '.proto', ".md"};
 
   // 特殊文件模式（与 C++ 版本保持一致）
   static const List<String> _specialFilePatterns = ['cmakelists.txt', 'readme.txt', "Dockerfile"];
 
   // 忽略的路径模式（与 C++ 版本保持一致）
-  static const List<String> _ignorePatterns = [
-    'venv',
-    'node_modules',
-    '__pycache__',
-    'build',
-    'dist',
-    'bin',
-    'obj',
-    'target',
-    'cmake-build-debug',
-    'cmake-build-release',
-    'json.hpp'
-  ];
+  static const List<String> _ignorePatterns = ['venv', 'node_modules', '__pycache__', 'build', 'dist', 'bin', 'obj', 'target', 'cmake-build-debug', 'cmake-build-release', 'json.hpp'];
 
   // 反忽略模式（与 C++ 版本保持一致）
   static const List<String> _antiIgnorePatterns = ['.cursor'];
@@ -142,11 +101,7 @@ class XmlMerger {
     }
 
     // 从 project.targetExt 提取启用的后缀
-    final enabledExtensions = project.targetExt
-            ?.where((ext) => ext.enabled)
-            .map((ext) => ext.ext.toLowerCase())
-            .toSet() ??
-        {};
+    final enabledExtensions = project.targetExt?.where((ext) => ext.enabled).map((ext) => ext.ext.toLowerCase()).toSet() ?? {};
 
     final taskCollection = MergeTaskCollection();
     final allItemsMap = <String, ProjectItem>{
@@ -177,7 +132,7 @@ class XmlMerger {
           ));
         } else if (await itemFile.isDir()) {
           log('收集目录任务: ${item.name} (${itemPath})');
-          
+
           // 添加目录任务
           taskCollection.addTask(XmlWriteTask(
             name: item.name ?? '',
@@ -216,11 +171,7 @@ class XmlMerger {
   /// [taskCollection] 任务集合
   /// [logCallback] 可选的日志回调函数
   /// 返回包含XML内容和合并文件列表的MergeResult对象
-  static Future<MergeResult> executeMergeTasks(
-    Project project, 
-    MergeTaskCollection taskCollection, 
-    {Function(String)? logCallback}
-  ) async {
+  static Future<MergeResult> executeMergeTasks(Project project, MergeTaskCollection taskCollection, {Function(String)? logCallback}) async {
     final buffer = StringBuffer();
     final mergedFilePaths = <String>[];
 
@@ -262,10 +213,10 @@ class XmlMerger {
 
   /// 执行单个任务
   static Future<void> _executeTask(
-    XmlWriteTask task, 
-    StringBuffer buffer, 
-    _MergeStats stats, 
-    Function(String) log, 
+    XmlWriteTask task,
+    StringBuffer buffer,
+    _MergeStats stats,
+    Function(String) log,
     List<String> mergedFilePaths,
     List<XmlWriteTask> allTasks,
   ) async {
@@ -275,12 +226,7 @@ class XmlMerger {
       buffer.writeln('${_indent(task.indentLevel)}<dir name="${_escapeXmlAttribute(task.name)}">');
 
       // 查找并处理此目录下的子任务
-      final childTasks = allTasks
-          .where((childTask) => 
-              childTask.indentLevel == task.indentLevel + 1 && 
-              childTask.path.startsWith(task.path) &&
-              childTask.path != task.path)
-          .toList();
+      final childTasks = allTasks.where((childTask) => childTask.indentLevel == task.indentLevel + 1 && childTask.path.startsWith(task.path) && childTask.path != task.path).toList();
 
       // 按名称排序
       childTasks.sort((a, b) => a.name.compareTo(b.name));
@@ -306,10 +252,10 @@ class XmlMerger {
 
   /// 执行文件任务
   static Future<void> _executeFileTask(
-    XmlWriteTask task, 
-    StringBuffer buffer, 
-    _MergeStats stats, 
-    Function(String) log, 
+    XmlWriteTask task,
+    StringBuffer buffer,
+    _MergeStats stats,
+    Function(String) log,
     List<String> mergedFilePaths,
   ) async {
     log('${_indent(task.indentLevel)}处理文件: ${task.name}');
@@ -355,7 +301,7 @@ class XmlMerger {
           if (i == 0) {
             buffer.writeln(); // 在第一行前添加换行
           }
-          
+
           final indent = task.indentLevel == 1 ? '      ' : _indent(task.indentLevel + 2);
           buffer.write('$indent$cleanLine');
           if (i < lines.length - 1) {
@@ -363,19 +309,19 @@ class XmlMerger {
           }
         }
         buffer.writeln(); // 在内容后添加换行
-        
+
         final indent = task.indentLevel == 1 ? '    ' : _indent(task.indentLevel + 1);
         buffer.write(indent);
       }
 
       buffer.writeln(']]>');
-      
+
       if (task.indentLevel == 1) {
         buffer.writeln('  </file>');
       } else {
         buffer.writeln('${_indent(task.indentLevel)}</file>');
       }
-      
+
       stats.mergedFiles++;
       mergedFilePaths.add(task.path);
     } catch (e) {
@@ -416,7 +362,6 @@ class XmlMerger {
     }
     return content;
   }
-
 
   /// 递归收集目录任务
   static Future<void> _collectDirectoryTasksRecursive(
@@ -484,11 +429,13 @@ class XmlMerger {
     files.sort((a, b) => _getFileName(a.getPath()).compareTo(_getFileName(b.getPath())));
 
     // 先收集子目录任务
+    final List<Future<void>> futures = [];
+    
     for (final subdir in subdirs) {
       final dirName = _getFileName(subdir.getPath());
 
       log('${_indent(indentLevel)}收集目录任务: $dirName');
-      
+
       // 添加目录任务
       taskCollection.addTask(XmlWriteTask(
         name: dirName,
@@ -498,15 +445,20 @@ class XmlMerger {
         indentLevel: indentLevel,
       ));
 
-      // 递归收集子任务
-      await _collectDirectoryTasksRecursive(
+      // 收集future用于并行执行
+      futures.add(_collectDirectoryTasksRecursive(
         subdir,
         indentLevel + 1,
         taskCollection,
         log,
         allItemsMap,
         enabledExtensions,
-      );
+      ));
+    }
+    
+    // 并行等待所有子目录任务完成
+    if (futures.isNotEmpty) {
+      await Future.wait(futures);
     }
 
     // 再收集文件任务
@@ -516,7 +468,7 @@ class XmlMerger {
       // 检查是否为代码文件或特殊文件
       if (isCodeFile(file.getPath(), enabledExtensions) || isSpecialFile(fileName)) {
         log('${_indent(indentLevel)}收集文件任务: $fileName');
-        
+
         // 添加文件任务
         taskCollection.addTask(XmlWriteTask(
           name: fileName,
@@ -540,7 +492,7 @@ class XmlMerger {
   /// 根据ProjectItem的类型创建相应的UniFile实例
   static UniFile _createUniFileFromProjectItem(ProjectItem item) {
     final itemPath = item.path ?? '';
-    
+
     if (item.fileType == ProjectFileType.sftp) {
       // 创建SFTP文件
       return SftpFile.create(
@@ -580,14 +532,15 @@ class XmlWriteTask {
 class MergeTaskCollection {
   final List<XmlWriteTask> _tasks = [];
   final _MergeStats stats = _MergeStats();
-  
+
   void addTask(XmlWriteTask task) {
     _tasks.add(task);
   }
-  
+
   List<XmlWriteTask> get tasks => List.unmodifiable(_tasks);
+
   _MergeStats get statistics => stats;
-  
+
   void clear() {
     _tasks.clear();
     stats.mergedFiles = 0;
