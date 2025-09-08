@@ -137,7 +137,16 @@ class ProjectGenerationController extends GetxController {
       logBuffer.writeln('===============================');
       logBuffer.writeln('');
       
-      final mergeResult = await XmlMerger.mergeXml(project, logCallback: (message) {
+      // 使用新的分离式执行模式：先收集任务，再执行任务
+      logBuffer.writeln('=== 第一阶段：收集合并任务 ===');
+      final taskCollection = await XmlMerger.collectMergeTasks(project, logCallback: (message) {
+        logBuffer.writeln(message);
+      });
+      logBuffer.writeln('任务收集完成：共收集到 ${taskCollection.tasks.length} 个任务');
+      logBuffer.writeln('');
+      
+      logBuffer.writeln('=== 第二阶段：执行合并任务 ===');
+      final mergeResult = await XmlMerger.executeMergeTasks(project, taskCollection, logCallback: (message) {
         logBuffer.writeln(message);
       });
       final xmlContent = mergeResult.xmlContent;
@@ -293,6 +302,92 @@ class ProjectGenerationController extends GetxController {
       );
     } catch (e) {
       return null;
+    }
+  }
+
+  /// 新的分离式生成方法 - 展示收集和执行阶段的分离
+  /// 为未来并行化做准备
+  Future<void> generateProjectWithSeparatedMode([Project? targetProject]) async {
+    if (isGenerating.value) {
+      return;
+    }
+
+    final project = targetProject ?? _dataController.selectedProject.value;
+    if (project == null) {
+      Get.snackbar('错误', '请先选择一个项目', duration: const Duration(seconds: 1));
+      return;
+    }
+
+    isGenerating.value = true;
+    final logBuffer = StringBuffer();
+    final startTime = DateTime.now();
+    
+    try {
+      logBuffer.writeln('=== 分离式合并模式演示 ===');
+      logBuffer.writeln('开始时间: ${startTime.toString()}');
+      logBuffer.writeln('项目名称: ${project.name}');
+      logBuffer.writeln('');
+
+      // 阶段1：收集任务
+      logBuffer.writeln('阶段1: 收集合并任务...');
+      final taskCollectionStart = DateTime.now();
+      final taskCollection = await XmlMerger.collectMergeTasks(project, logCallback: (message) {
+        logBuffer.writeln('  $message');
+      });
+      final taskCollectionEnd = DateTime.now();
+      final collectionDuration = taskCollectionEnd.difference(taskCollectionStart);
+
+      logBuffer.writeln('阶段1完成:');
+      logBuffer.writeln('  - 收集到任务数: ${taskCollection.tasks.length}');
+      logBuffer.writeln('  - 收集耗时: ${collectionDuration.inMilliseconds} ms');
+      logBuffer.writeln('  - 任务详情:');
+      
+      final fileTasks = taskCollection.tasks.where((task) => !task.isDirectory).length;
+      final dirTasks = taskCollection.tasks.where((task) => task.isDirectory).length;
+      logBuffer.writeln('    * 文件任务: $fileTasks 个');
+      logBuffer.writeln('    * 目录任务: $dirTasks 个');
+      logBuffer.writeln('');
+
+      // 阶段2：执行任务（在实际并行化中，这里可以并行处理）
+      logBuffer.writeln('阶段2: 执行合并任务...');
+      final executionStart = DateTime.now();
+      final mergeResult = await XmlMerger.executeMergeTasks(project, taskCollection, logCallback: (message) {
+        logBuffer.writeln('  $message');
+      });
+      final executionEnd = DateTime.now();
+      final executionDuration = executionEnd.difference(executionStart);
+
+      logBuffer.writeln('阶段2完成:');
+      logBuffer.writeln('  - 执行耗时: ${executionDuration.inMilliseconds} ms');
+      logBuffer.writeln('  - 合并文件数: ${mergeResult.mergedFilePaths.length}');
+      logBuffer.writeln('  - XML大小: ${(mergeResult.xmlContent.length / 1024).toStringAsFixed(1)} KB');
+      logBuffer.writeln('');
+
+      final totalDuration = DateTime.now().difference(startTime);
+      logBuffer.writeln('总体统计:');
+      logBuffer.writeln('  - 总耗时: ${totalDuration.inMilliseconds} ms');
+      logBuffer.writeln('  - 收集阶段占比: ${((collectionDuration.inMilliseconds / totalDuration.inMilliseconds) * 100).toStringAsFixed(1)}%');
+      logBuffer.writeln('  - 执行阶段占比: ${((executionDuration.inMilliseconds / totalDuration.inMilliseconds) * 100).toStringAsFixed(1)}%');
+      logBuffer.writeln('');
+      logBuffer.writeln('💡 并行化潜力分析:');
+      logBuffer.writeln('  - 任务收集完成后，理论上可以并行处理 ${taskCollection.tasks.length} 个任务');
+      logBuffer.writeln('  - 预计并行化后可将执行时间减少 50-80%（取决于任务复杂度和硬件）');
+
+      lastGenerateLog.value = logBuffer.toString();
+
+      Get.snackbar(
+        '演示完成', 
+        '分离式执行模式演示完成\n收集: ${collectionDuration.inMilliseconds}ms, 执行: ${executionDuration.inMilliseconds}ms',
+        duration: const Duration(seconds: 1),
+      );
+    } catch (e) {
+      logBuffer.writeln('');
+      logBuffer.writeln('错误: $e');
+      lastGenerateLog.value = logBuffer.toString();
+      
+      Get.snackbar('错误', '演示失败: $e', duration: const Duration(seconds: 1));
+    } finally {
+      isGenerating.value = false;
     }
   }
 }
