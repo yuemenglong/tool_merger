@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:dartssh2/dartssh2.dart';
+import 'dart:collection';
 
 class SftpConnectionInfo {
   final String host;
@@ -36,6 +37,7 @@ class SftpConnectionEntry {
   final SftpConnectionInfo info;
   DateTime lastUsed;
   bool _disposed = false;
+  bool _inUse = false;
 
   SftpConnectionEntry({
     required this.client,
@@ -55,10 +57,23 @@ class SftpConnectionEntry {
   }
 
   bool get isDisposed => _disposed;
+  
+  bool get inUse => _inUse;
+  
+  void markInUse() {
+    _inUse = true;
+    updateLastUsed();
+  }
+  
+  void markAvailable() {
+    _inUse = false;
+    updateLastUsed();
+  }
 
   void dispose() {
     if (!_disposed) {
       _disposed = true;
+      _inUse = false;
       try {
         client.close();
       } catch (e) {
@@ -73,7 +88,8 @@ class SftpConnectionManager {
   factory SftpConnectionManager() => _instance;
   SftpConnectionManager._internal();
 
-  final Map<String, SftpConnectionEntry> _connections = {};
+  static const int _maxConnections = 20;
+  final Map<String, Queue<SftpConnectionEntry>> _connectionPools = {};
   Timer? _cleanupTimer;
 
   void _startCleanupTimer() {
@@ -84,38 +100,81 @@ class SftpConnectionManager {
   }
 
   void _cleanupExpiredConnections() {
-    final expiredKeys = <String>[];
-    
-    for (final entry in _connections.entries) {
-      if (entry.value.isExpired || entry.value.isDisposed) {
-        expiredKeys.add(entry.key);
+    for (final poolEntry in _connectionPools.entries) {
+      final pool = poolEntry.value;
+      final expiredConnections = <SftpConnectionEntry>[];
+      
+      for (final connection in pool) {
+        if (connection.isExpired || connection.isDisposed) {
+          expiredConnections.add(connection);
+        }
+      }
+      
+      for (final expired in expiredConnections) {
+        pool.remove(expired);
+        expired.dispose();
       }
     }
-
-    for (final key in expiredKeys) {
-      final connection = _connections.remove(key);
-      connection?.dispose();
-    }
+    
+    // 移除空的连接池
+    _connectionPools.removeWhere((key, pool) => pool.isEmpty);
   }
 
-  Future<SftpClient> getConnection(SftpConnectionInfo info) async {
+  Future<SftpConnectionEntry> _getAvailableConnection(SftpConnectionInfo info) async {
     final key = info.key;
+    final pool = _connectionPools[key] ??= Queue<SftpConnectionEntry>();
     
-    // 检查是否有可用连接
-    final existing = _connections[key];
-    if (existing != null && !existing.isExpired && !existing.isDisposed) {
-      try {
-        // 测试连接是否还活着
-        await existing.sftp.stat('/');
-        existing.updateLastUsed();
-        return existing.sftp;
-      } catch (e) {
-        // 连接已断开，移除并重新创建
-        _connections.remove(key);
-        existing.dispose();
+    // 寻找可用的连接
+    for (final connection in pool) {
+      if (!connection.inUse && !connection.isExpired && !connection.isDisposed) {
+        try {
+          // 测试连接是否还活着
+          await connection.sftp.stat('/');
+          connection.markInUse();
+          return connection;
+        } catch (e) {
+          // 连接已断开，移除
+          pool.remove(connection);
+          connection.dispose();
+          break;
+        }
       }
     }
-
+    
+    // 检查是否超过连接数限制
+    final totalConnections = _connectionPools.values
+        .fold<int>(0, (sum, pool) => sum + pool.length);
+    
+    if (totalConnections >= _maxConnections) {
+      // 尝试清理过期连接
+      _cleanupExpiredConnections();
+      
+      final newTotalConnections = _connectionPools.values
+          .fold<int>(0, (sum, pool) => sum + pool.length);
+      
+      if (newTotalConnections >= _maxConnections) {
+        // 找到最老的可用连接并移除
+        SftpConnectionEntry? oldestConnection;
+        String? oldestPoolKey;
+        
+        for (final poolEntry in _connectionPools.entries) {
+          for (final connection in poolEntry.value) {
+            if (!connection.inUse && 
+                (oldestConnection == null || 
+                 connection.lastUsed.isBefore(oldestConnection.lastUsed))) {
+              oldestConnection = connection;
+              oldestPoolKey = poolEntry.key;
+            }
+          }
+        }
+        
+        if (oldestConnection != null && oldestPoolKey != null) {
+          _connectionPools[oldestPoolKey]!.remove(oldestConnection);
+          oldestConnection.dispose();
+        }
+      }
+    }
+    
     // 创建新连接
     try {
       final client = SSHClient(
@@ -131,23 +190,55 @@ class SftpConnectionManager {
         sftp: sftp,
         info: info,
       );
-
-      _connections[key] = connection;
+      
+      connection.markInUse();
+      pool.add(connection);
       
       // 启动清理定时器（如果还没启动）
       if (_cleanupTimer == null || !_cleanupTimer!.isActive) {
         _startCleanupTimer();
       }
 
-      return sftp;
+      return connection;
     } catch (e) {
       throw Exception('无法连接到SFTP服务器 ${info.host}:${info.port}: $e');
     }
   }
 
+  void _releaseConnection(SftpConnectionEntry connection) {
+    if (!connection.isDisposed) {
+      connection.markAvailable();
+    }
+  }
+
+  Future<T> withConn<T>(
+    SftpConnectionInfo connInfo, 
+    Future<T> Function(SftpClient sftp) callback
+  ) async {
+    SftpConnectionEntry? connection;
+    try {
+      connection = await _getAvailableConnection(connInfo);
+      return await callback(connection.sftp);
+    } finally {
+      if (connection != null) {
+        _releaseConnection(connection);
+      }
+    }
+  }
+
+  @deprecated
+  Future<SftpClient> getConnection(SftpConnectionInfo info) async {
+    final connection = await _getAvailableConnection(info);
+    return connection.sftp;
+  }
+
   void removeConnection(String key) {
-    final connection = _connections.remove(key);
-    connection?.dispose();
+    final pool = _connectionPools.remove(key);
+    if (pool != null) {
+      for (final connection in pool) {
+        connection.dispose();
+      }
+    }
   }
 
   void removeConnectionByInfo(SftpConnectionInfo info) {
@@ -155,17 +246,25 @@ class SftpConnectionManager {
   }
 
   void clearAllConnections() {
-    for (final connection in _connections.values) {
-      connection.dispose();
+    for (final pool in _connectionPools.values) {
+      for (final connection in pool) {
+        connection.dispose();
+      }
     }
-    _connections.clear();
+    _connectionPools.clear();
     _cleanupTimer?.cancel();
     _cleanupTimer = null;
   }
 
-  int get activeConnectionCount => _connections.length;
+  int get activeConnectionCount => _connectionPools.values
+      .fold<int>(0, (sum, pool) => sum + pool.length);
 
-  List<String> get activeConnectionKeys => _connections.keys.toList();
+  int get maxConnections => _maxConnections;
+
+  List<String> get activeConnectionKeys => _connectionPools.keys.toList();
+
+  Map<String, int> get connectionCounts => _connectionPools.map(
+      (key, pool) => MapEntry(key, pool.length));
 
   void dispose() {
     clearAllConnections();
