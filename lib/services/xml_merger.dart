@@ -116,6 +116,7 @@ class XmlMerger {
 
     // 收集任务信息
     final List<Future<void>> directoryFutures = [];
+    final List<Future<void>> fileFutures = [];
     
     for (final item in enabledItems) {
       try {
@@ -123,35 +124,9 @@ class XmlMerger {
         final itemFile = _createUniFileFromProjectItem(item);
 
         if (await itemFile.isFile()) {
-          // 添加文件任务
+          // 添加文件读取任务到并行执行队列
           log('收集文件任务: ${item.name} (${itemPath})');
-          
-          // 预读取文件内容
-          String? fileContent;
-          try {
-            final contentBytes = await itemFile.read();
-            fileContent = String.fromCharCodes(contentBytes);
-            
-            // 检查文件是否为空
-            if (fileContent.isEmpty && await itemFile.getSize() > 0) {
-              log('警告: 文件 \'${item.name}\' 读取内容为空或失败，跳过。');
-              taskCollection.stats.skippedFilesIgnored++;
-              continue;
-            }
-          } catch (e) {
-            log('错误: 读取文件失败 ${itemPath}: $e');
-            taskCollection.stats.skippedFilesIgnored++;
-            continue;
-          }
-          
-          taskCollection.addTask(XmlWriteTask(
-            name: item.name ?? '',
-            path: itemPath,
-            isDirectory: false,
-            file: itemFile,
-            indentLevel: 1, // 根级文件
-            content: fileContent,
-          ));
+          fileFutures.add(_readFileTask(item, itemFile, taskCollection, log));
         } else if (await itemFile.isDir()) {
           log('收集目录任务: ${item.name} (${itemPath})');
 
@@ -181,6 +156,11 @@ class XmlMerger {
         log('错误: 处理项目项失败 ${item.path}: $e');
         taskCollection.stats.skippedFilesIgnored++;
       }
+    }
+    
+    // 并行等待所有根级文件读取完成
+    if (fileFutures.isNotEmpty) {
+      await Future.wait(fileFutures);
     }
     
     // 并行等待所有目录的递归收集完成
@@ -483,51 +463,108 @@ class XmlMerger {
       await Future.wait(futures);
     }
 
-    // 再收集文件任务
+    // 并行收集文件任务
+    final List<Future<void>> fileReadFutures = [];
+    
     for (final file in files) {
       final fileName = _getFileName(file.getPath());
 
       // 检查是否为代码文件或特殊文件
       if (isCodeFile(file.getPath(), enabledExtensions) || isSpecialFile(fileName)) {
         log('${_indent(indentLevel)}收集文件任务: $fileName');
-
-        // 预读取文件内容
-        String? fileContent;
-        try {
-          final contentBytes = await file.read();
-          fileContent = String.fromCharCodes(contentBytes);
-          
-          // 检查文件是否为空
-          if (fileContent.isEmpty && await file.getSize() > 0) {
-            log('${_indent(indentLevel + 1)}警告: 文件 \'$fileName\' 读取内容为空或失败，跳过。');
-            taskCollection.stats.skippedFilesIgnored++;
-            continue;
-          }
-        } catch (e) {
-          log('${_indent(indentLevel)}错误: 读取文件失败 ${file.getPath()}: $e');
-          taskCollection.stats.skippedFilesIgnored++;
-          continue;
-        }
-
-        // 添加文件任务
-        taskCollection.addTask(XmlWriteTask(
-          name: fileName,
-          path: file.getPath(),
-          isDirectory: false,
-          file: file,
-          indentLevel: indentLevel,
-          content: fileContent,
+        // 添加文件读取任务到并行队列
+        fileReadFutures.add(_readDirectoryFileTask(
+          file,
+          fileName,
+          indentLevel,
+          taskCollection,
+          log,
         ));
       } else {
         log('${_indent(indentLevel)}跳过文件(非代码/特殊文件): $fileName');
         taskCollection.stats.skippedFilesNonCode++;
       }
     }
+    
+    // 并行等待所有文件读取完成
+    if (fileReadFutures.isNotEmpty) {
+      await Future.wait(fileReadFutures);
+    }
   }
 
   /// 生成缩进字符串
   static String _indent(int level) {
     return '  ' * level; // 每级缩进 2 个空格
+  }
+
+  /// 并行读取根级文件任务
+  static Future<void> _readFileTask(
+    ProjectItem item,
+    UniFile itemFile,
+    MergeTaskCollection taskCollection,
+    Function(String) log,
+  ) async {
+    final itemPath = item.path ?? '';
+    
+    try {
+      // 预读取文件内容
+      final contentBytes = await itemFile.read();
+      final fileContent = String.fromCharCodes(contentBytes);
+      
+      // 检查文件是否为空
+      if (fileContent.isEmpty && await itemFile.getSize() > 0) {
+        log('警告: 文件 \'${item.name}\' 读取内容为空或失败，跳过。');
+        taskCollection.stats.skippedFilesIgnored++;
+        return;
+      }
+      
+      taskCollection.addTask(XmlWriteTask(
+        name: item.name ?? '',
+        path: itemPath,
+        isDirectory: false,
+        file: itemFile,
+        indentLevel: 1, // 根级文件
+        content: fileContent,
+      ));
+    } catch (e) {
+      log('错误: 读取文件失败 ${itemPath}: $e');
+      taskCollection.stats.skippedFilesIgnored++;
+    }
+  }
+
+  /// 并行读取目录中的文件任务
+  static Future<void> _readDirectoryFileTask(
+    UniFile file,
+    String fileName,
+    int indentLevel,
+    MergeTaskCollection taskCollection,
+    Function(String) log,
+  ) async {
+    try {
+      // 预读取文件内容
+      final contentBytes = await file.read();
+      final fileContent = String.fromCharCodes(contentBytes);
+      
+      // 检查文件是否为空
+      if (fileContent.isEmpty && await file.getSize() > 0) {
+        log('${_indent(indentLevel + 1)}警告: 文件 \'$fileName\' 读取内容为空或失败，跳过。');
+        taskCollection.stats.skippedFilesIgnored++;
+        return;
+      }
+
+      // 添加文件任务
+      taskCollection.addTask(XmlWriteTask(
+        name: fileName,
+        path: file.getPath(),
+        isDirectory: false,
+        file: file,
+        indentLevel: indentLevel,
+        content: fileContent,
+      ));
+    } catch (e) {
+      log('${_indent(indentLevel)}错误: 读取文件失败 ${file.getPath()}: $e');
+      taskCollection.stats.skippedFilesIgnored++;
+    }
   }
 
   /// 根据ProjectItem的类型创建相应的UniFile实例
