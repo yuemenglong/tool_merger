@@ -88,8 +88,9 @@ class SftpConnectionManager {
   factory SftpConnectionManager() => _instance;
   SftpConnectionManager._internal();
 
-  static const int _maxConnections = 20;
+  static const int _connectionsPerServer = 20;
   final Map<String, Queue<SftpConnectionEntry>> _connectionPools = {};
+  final Set<String> _initializedServers = {};
   Timer? _cleanupTimer;
 
   void _startCleanupTimer() {
@@ -120,89 +121,99 @@ class SftpConnectionManager {
     _connectionPools.removeWhere((key, pool) => pool.isEmpty);
   }
 
+  Future<void> _initializeConnectionPool(SftpConnectionInfo info) async {
+    final key = info.key;
+    if (_initializedServers.contains(key)) {
+      return; // Already initialized
+    }
+    
+    final pool = _connectionPools[key] ??= Queue<SftpConnectionEntry>();
+    final List<SftpConnectionEntry> newConnections = [];
+    
+    try {
+      // Create 20 connections in parallel
+      final futures = <Future<SftpConnectionEntry>>[];
+      for (int i = 0; i < _connectionsPerServer; i++) {
+        futures.add(_createSingleConnection(info));
+      }
+      
+      final connections = await Future.wait(futures);
+      newConnections.addAll(connections);
+      
+      // All connections created successfully, add to pool
+      for (final connection in newConnections) {
+        pool.add(connection);
+      }
+      
+      _initializedServers.add(key);
+      
+      // Start cleanup timer if not already active
+      if (_cleanupTimer == null || !_cleanupTimer!.isActive) {
+        _startCleanupTimer();
+      }
+    } catch (e) {
+      // Clean up any partially created connections
+      for (final connection in newConnections) {
+        connection.dispose();
+      }
+      throw Exception('无法初始化SFTP连接池到服务器 ${info.host}:${info.port}: $e');
+    }
+  }
+
+  Future<SftpConnectionEntry> _createSingleConnection(SftpConnectionInfo info) async {
+    final client = SSHClient(
+      await SSHSocket.connect(info.host, info.port),
+      username: info.user,
+      onPasswordRequest: () => info.password,
+    );
+
+    final sftp = await client.sftp();
+    
+    return SftpConnectionEntry(
+      client: client,
+      sftp: sftp,
+      info: info,
+    );
+  }
+
   Future<SftpConnectionEntry> _getAvailableConnection(SftpConnectionInfo info) async {
     final key = info.key;
-    final pool = _connectionPools[key] ??= Queue<SftpConnectionEntry>();
     
-    // 寻找可用的连接
+    // Initialize connection pool if not already done
+    if (!_initializedServers.contains(key)) {
+      await _initializeConnectionPool(info);
+    }
+    
+    final pool = _connectionPools[key]!;
+    
+    // Find an available connection
     for (final connection in pool) {
       if (!connection.inUse && !connection.isExpired && !connection.isDisposed) {
         try {
-          // 测试连接是否还活着
+          // Test if connection is still alive
           await connection.sftp.stat('/');
           connection.markInUse();
           return connection;
         } catch (e) {
-          // 连接已断开，移除
+          // Connection is dead, replace it
           pool.remove(connection);
           connection.dispose();
-          break;
-        }
-      }
-    }
-    
-    // 检查是否超过连接数限制
-    final totalConnections = _connectionPools.values
-        .fold<int>(0, (sum, pool) => sum + pool.length);
-    
-    if (totalConnections >= _maxConnections) {
-      // 尝试清理过期连接
-      _cleanupExpiredConnections();
-      
-      final newTotalConnections = _connectionPools.values
-          .fold<int>(0, (sum, pool) => sum + pool.length);
-      
-      if (newTotalConnections >= _maxConnections) {
-        // 找到最老的可用连接并移除
-        SftpConnectionEntry? oldestConnection;
-        String? oldestPoolKey;
-        
-        for (final poolEntry in _connectionPools.entries) {
-          for (final connection in poolEntry.value) {
-            if (!connection.inUse && 
-                (oldestConnection == null || 
-                 connection.lastUsed.isBefore(oldestConnection.lastUsed))) {
-              oldestConnection = connection;
-              oldestPoolKey = poolEntry.key;
-            }
+          
+          // Create a new connection to maintain the pool size of 20
+          try {
+            final newConnection = await _createSingleConnection(info);
+            pool.add(newConnection);
+            newConnection.markInUse();
+            return newConnection;
+          } catch (createError) {
+            throw Exception('无法重新创建SFTP连接到服务器 ${info.host}:${info.port}: $createError');
           }
         }
-        
-        if (oldestConnection != null && oldestPoolKey != null) {
-          _connectionPools[oldestPoolKey]!.remove(oldestConnection);
-          oldestConnection.dispose();
-        }
       }
     }
     
-    // 创建新连接
-    try {
-      final client = SSHClient(
-        await SSHSocket.connect(info.host, info.port),
-        username: info.user,
-        onPasswordRequest: () => info.password,
-      );
-
-      final sftp = await client.sftp();
-      
-      final connection = SftpConnectionEntry(
-        client: client,
-        sftp: sftp,
-        info: info,
-      );
-      
-      connection.markInUse();
-      pool.add(connection);
-      
-      // 启动清理定时器（如果还没启动）
-      if (_cleanupTimer == null || !_cleanupTimer!.isActive) {
-        _startCleanupTimer();
-      }
-
-      return connection;
-    } catch (e) {
-      throw Exception('无法连接到SFTP服务器 ${info.host}:${info.port}: $e');
-    }
+    // All connections are in use, wait and retry
+    throw Exception('所有SFTP连接都在使用中，请稍后重试');
   }
 
   void _releaseConnection(SftpConnectionEntry connection) {
@@ -226,7 +237,7 @@ class SftpConnectionManager {
     }
   }
 
-  @deprecated
+  @Deprecated('Use withConn instead')
   Future<SftpClient> getConnection(SftpConnectionInfo info) async {
     final connection = await _getAvailableConnection(info);
     return connection.sftp;
@@ -239,6 +250,7 @@ class SftpConnectionManager {
         connection.dispose();
       }
     }
+    _initializedServers.remove(key);
   }
 
   void removeConnectionByInfo(SftpConnectionInfo info) {
@@ -252,6 +264,7 @@ class SftpConnectionManager {
       }
     }
     _connectionPools.clear();
+    _initializedServers.clear();
     _cleanupTimer?.cancel();
     _cleanupTimer = null;
   }
@@ -259,7 +272,7 @@ class SftpConnectionManager {
   int get activeConnectionCount => _connectionPools.values
       .fold<int>(0, (sum, pool) => sum + pool.length);
 
-  int get maxConnections => _maxConnections;
+  int get connectionsPerServer => _connectionsPerServer;
 
   List<String> get activeConnectionKeys => _connectionPools.keys.toList();
 
