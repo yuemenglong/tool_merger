@@ -115,6 +115,8 @@ class XmlMerger {
     }
 
     // 收集任务信息
+    final List<Future<void>> directoryFutures = [];
+    
     for (final item in enabledItems) {
       try {
         final itemPath = item.path ?? '';
@@ -142,15 +144,15 @@ class XmlMerger {
             indentLevel: 1, // 根级目录
           ));
 
-          // 递归收集子任务
-          await _collectDirectoryTasksRecursive(
+          // 收集目录的递归任务用于并行执行
+          directoryFutures.add(_collectDirectoryTasksRecursive(
             itemFile,
             2, // 子级缩进
             taskCollection,
             log,
             allItemsMap,
             enabledExtensions,
-          );
+          ));
         } else {
           log('警告: 路径不存在: ${itemPath}');
           taskCollection.stats.skippedFilesIgnored++;
@@ -159,6 +161,11 @@ class XmlMerger {
         log('错误: 处理项目项失败 ${item.path}: $e');
         taskCollection.stats.skippedFilesIgnored++;
       }
+    }
+    
+    // 并行等待所有目录的递归收集完成
+    if (directoryFutures.isNotEmpty) {
+      await Future.wait(directoryFutures);
     }
 
     log('任务收集完成: 收集到 ${taskCollection.tasks.length} 个处理任务');
