@@ -125,12 +125,32 @@ class XmlMerger {
         if (await itemFile.isFile()) {
           // 添加文件任务
           log('收集文件任务: ${item.name} (${itemPath})');
+          
+          // 预读取文件内容
+          String? fileContent;
+          try {
+            final contentBytes = await itemFile.read();
+            fileContent = String.fromCharCodes(contentBytes);
+            
+            // 检查文件是否为空
+            if (fileContent.isEmpty && await itemFile.getSize() > 0) {
+              log('警告: 文件 \'${item.name}\' 读取内容为空或失败，跳过。');
+              taskCollection.stats.skippedFilesIgnored++;
+              continue;
+            }
+          } catch (e) {
+            log('错误: 读取文件失败 ${itemPath}: $e');
+            taskCollection.stats.skippedFilesIgnored++;
+            continue;
+          }
+          
           taskCollection.addTask(XmlWriteTask(
             name: item.name ?? '',
             path: itemPath,
             isDirectory: false,
             file: itemFile,
             indentLevel: 1, // 根级文件
+            content: fileContent,
           ));
         } else if (await itemFile.isDir()) {
           log('收集目录任务: ${item.name} (${itemPath})');
@@ -267,74 +287,69 @@ class XmlMerger {
   ) async {
     log('${_indent(task.indentLevel)}处理文件: ${task.name}');
 
-    try {
-      final contentBytes = await task.file.read();
-      String content = String.fromCharCodes(contentBytes);
-
-      // 检查文件是否为空
-      if (content.isEmpty && await task.file.getSize() > 0) {
-        log('${_indent(task.indentLevel + 1)}警告: 文件 \'${task.name}\' 读取内容为空或失败，跳过XML写入。');
-        stats.skippedFilesIgnored++;
-        return;
-      }
-
-      if (task.indentLevel == 1) {
-        // 根级文件，包含path属性
-        buffer.writeln('  <file name="${_escapeXmlAttribute(task.name)}" path="${_escapeXmlAttribute(task.path)}">');
-        buffer.writeln('    <![CDATA[');
-      } else {
-        // 子级文件，不包含path属性
-        buffer.writeln('${_indent(task.indentLevel)}<file name="${_escapeXmlAttribute(task.name)}">');
-        buffer.writeln('${_indent(task.indentLevel + 1)}<![CDATA[');
-      }
-
-      // 处理内容
-      if (content.isNotEmpty) {
-        // 移除可能的 BOM
-        if (content.startsWith('\uFEFF')) {
-          content = content.substring(1);
-        }
-
-        // 转义 CDATA 内容
-        content = _escapeCDataContent(content);
-
-        // 按行处理内容，添加适当的缩进
-        final lines = content.split('\n');
-        for (int i = 0; i < lines.length; i++) {
-          final line = lines[i];
-          // 移除行尾的回车符
-          final cleanLine = line.endsWith('\r') ? line.substring(0, line.length - 1) : line;
-
-          if (i == 0) {
-            buffer.writeln(); // 在第一行前添加换行
-          }
-
-          final indent = task.indentLevel == 1 ? '      ' : _indent(task.indentLevel + 2);
-          buffer.write('$indent$cleanLine');
-          if (i < lines.length - 1) {
-            buffer.writeln();
-          }
-        }
-        buffer.writeln(); // 在内容后添加换行
-
-        final indent = task.indentLevel == 1 ? '    ' : _indent(task.indentLevel + 1);
-        buffer.write(indent);
-      }
-
-      buffer.writeln(']]>');
-
-      if (task.indentLevel == 1) {
-        buffer.writeln('  </file>');
-      } else {
-        buffer.writeln('${_indent(task.indentLevel)}</file>');
-      }
-
-      stats.mergedFiles++;
-      mergedFilePaths.add(task.path);
-    } catch (e) {
-      log('错误: 读取文件失败 ${task.path}: $e');
+    // 使用预读取的文件内容
+    String content = task.content ?? '';
+    
+    // 检查文件内容是否为空（这个检查现在应该在collect阶段已经做过了，但保持兼容性）
+    if (content.isEmpty) {
+      log('${_indent(task.indentLevel + 1)}警告: 文件 \'${task.name}\' 内容为空，跳过XML写入。');
       stats.skippedFilesIgnored++;
+      return;
     }
+
+    if (task.indentLevel == 1) {
+      // 根级文件，包含path属性
+      buffer.writeln('  <file name="${_escapeXmlAttribute(task.name)}" path="${_escapeXmlAttribute(task.path)}">');
+      buffer.writeln('    <![CDATA[');
+    } else {
+      // 子级文件，不包含path属性
+      buffer.writeln('${_indent(task.indentLevel)}<file name="${_escapeXmlAttribute(task.name)}">');
+      buffer.writeln('${_indent(task.indentLevel + 1)}<![CDATA[');
+    }
+
+    // 处理内容
+    if (content.isNotEmpty) {
+      // 移除可能的 BOM
+      if (content.startsWith('\uFEFF')) {
+        content = content.substring(1);
+      }
+
+      // 转义 CDATA 内容
+      content = _escapeCDataContent(content);
+
+      // 按行处理内容，添加适当的缩进
+      final lines = content.split('\n');
+      for (int i = 0; i < lines.length; i++) {
+        final line = lines[i];
+        // 移除行尾的回车符
+        final cleanLine = line.endsWith('\r') ? line.substring(0, line.length - 1) : line;
+
+        if (i == 0) {
+          buffer.writeln(); // 在第一行前添加换行
+        }
+
+        final indent = task.indentLevel == 1 ? '      ' : _indent(task.indentLevel + 2);
+        buffer.write('$indent$cleanLine');
+        if (i < lines.length - 1) {
+          buffer.writeln();
+        }
+      }
+      buffer.writeln(); // 在内容后添加换行
+
+      final indent = task.indentLevel == 1 ? '    ' : _indent(task.indentLevel + 1);
+      buffer.write(indent);
+    }
+
+    buffer.writeln(']]>');
+
+    if (task.indentLevel == 1) {
+      buffer.writeln('  </file>');
+    } else {
+      buffer.writeln('${_indent(task.indentLevel)}</file>');
+    }
+
+    stats.mergedFiles++;
+    mergedFilePaths.add(task.path);
   }
 
   /// 将项目合并为 XML 字符串（便利方法，内部使用新的分离式流程）
@@ -476,6 +491,24 @@ class XmlMerger {
       if (isCodeFile(file.getPath(), enabledExtensions) || isSpecialFile(fileName)) {
         log('${_indent(indentLevel)}收集文件任务: $fileName');
 
+        // 预读取文件内容
+        String? fileContent;
+        try {
+          final contentBytes = await file.read();
+          fileContent = String.fromCharCodes(contentBytes);
+          
+          // 检查文件是否为空
+          if (fileContent.isEmpty && await file.getSize() > 0) {
+            log('${_indent(indentLevel + 1)}警告: 文件 \'$fileName\' 读取内容为空或失败，跳过。');
+            taskCollection.stats.skippedFilesIgnored++;
+            continue;
+          }
+        } catch (e) {
+          log('${_indent(indentLevel)}错误: 读取文件失败 ${file.getPath()}: $e');
+          taskCollection.stats.skippedFilesIgnored++;
+          continue;
+        }
+
         // 添加文件任务
         taskCollection.addTask(XmlWriteTask(
           name: fileName,
@@ -483,6 +516,7 @@ class XmlMerger {
           isDirectory: false,
           file: file,
           indentLevel: indentLevel,
+          content: fileContent,
         ));
       } else {
         log('${_indent(indentLevel)}跳过文件(非代码/特殊文件): $fileName');
@@ -524,6 +558,7 @@ class XmlWriteTask {
   final UniFile file;
   final int indentLevel;
   final String? parentName;
+  final String? content; // 预读取的文件内容（仅对文件有效）
 
   XmlWriteTask({
     required this.name,
@@ -532,6 +567,7 @@ class XmlWriteTask {
     required this.file,
     required this.indentLevel,
     this.parentName,
+    this.content,
   });
 }
 
