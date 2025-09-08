@@ -224,11 +224,15 @@ class SftpFile extends UniFile {
       password: _password,
     );
 
-    final sftp = await SftpConnectionManager().getConnection(connectionInfo);
-    final file = await sftp.open(_path);
-    final data = await file.readBytes();
-    await file.close();
-    return Uint8List.fromList(data);
+    return await SftpConnectionManager().withConn(connectionInfo, (sftp) async {
+      final file = await sftp.open(_path);
+      try {
+        final data = await file.readBytes();
+        return Uint8List.fromList(data);
+      } finally {
+        await file.close();
+      }
+    });
   }
 
   @override
@@ -240,24 +244,25 @@ class SftpFile extends UniFile {
       password: _password,
     );
 
-    final sftp = await SftpConnectionManager().getConnection(connectionInfo);
-    final files = await sftp.listdir(_path);
-    return files
-        .where((item) => item.filename != '.' && item.filename != '..')
-        .map((item) {
-      final itemPath = _path.endsWith('/') ? '$_path${item.filename}' : '$_path/${item.filename}';
+    return await SftpConnectionManager().withConn(connectionInfo, (sftp) async {
+      final files = await sftp.listdir(_path);
+      return files
+          .where((item) => item.filename != '.' && item.filename != '..')
+          .map((item) {
+        final itemPath = _path.endsWith('/') ? '$_path${item.filename}' : '$_path/${item.filename}';
 
-      return SftpFile.createWithCache(
-        _host,
-        _port,
-        _user,
-        _password,
-        itemPath,
-        isDirectory: item.attr.isDirectory,
-        size: item.attr.size,
-        modifiedTime: item.attr.modifyTime != null ? DateTime.fromMillisecondsSinceEpoch(item.attr.modifyTime! * 1000) : null,
-      );
-    }).toList();
+        return SftpFile.createWithCache(
+          _host,
+          _port,
+          _user,
+          _password,
+          itemPath,
+          isDirectory: item.attr.isDirectory,
+          size: item.attr.size,
+          modifiedTime: item.attr.modifyTime != null ? DateTime.fromMillisecondsSinceEpoch(item.attr.modifyTime! * 1000) : null,
+        );
+      }).toList();
+    });
   }
 
   @override
@@ -274,9 +279,10 @@ class SftpFile extends UniFile {
         password: _password,
       );
 
-      final sftp = await SftpConnectionManager().getConnection(connectionInfo);
-      final stat = await sftp.stat(_path);
-      return stat.isDirectory;
+      return await SftpConnectionManager().withConn(connectionInfo, (sftp) async {
+        final stat = await sftp.stat(_path);
+        return stat.isDirectory;
+      });
     } catch (e) {
       return false;
     }
@@ -296,9 +302,10 @@ class SftpFile extends UniFile {
         password: _password,
       );
 
-      final sftp = await SftpConnectionManager().getConnection(connectionInfo);
-      final stat = await sftp.stat(_path);
-      return stat.isFile;
+      return await SftpConnectionManager().withConn(connectionInfo, (sftp) async {
+        final stat = await sftp.stat(_path);
+        return stat.isFile;
+      });
     } catch (e) {
       return false;
     }
@@ -328,9 +335,10 @@ class SftpFile extends UniFile {
         password: _password,
       );
 
-      final sftp = await SftpConnectionManager().getConnection(connectionInfo);
-      final stat = await sftp.stat(_path);
-      return stat.size ?? 0;
+      return await SftpConnectionManager().withConn(connectionInfo, (sftp) async {
+        final stat = await sftp.stat(_path);
+        return stat.size ?? 0;
+      });
     } catch (e) {
       return 0;
     }

@@ -252,7 +252,11 @@ class SftpController extends GetxController {
         password: root.password!,
       );
       
-      await SftpConnectionManager().getConnection(connectionInfo);
+      await SftpConnectionManager().withConn(connectionInfo, (sftp) async {
+        // Test basic functionality by listing root path
+        await sftp.stat(root.path ?? '/');
+        return true;
+      });
       Get.snackbar('成功', '连接 ${root.name} 成功', duration: const Duration(seconds: 1));
       return true;
     } catch (e) {
