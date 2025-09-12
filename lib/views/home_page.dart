@@ -119,6 +119,16 @@ class ToolMergerHomePage extends StatelessWidget {
           constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
           padding: const EdgeInsets.all(4),
         ),
+        // 编辑按钮
+        Obx(() => IconButton(
+          onPressed: controller.selectedSftpRoot.value != null 
+              ? () => _showSftpRootDialog(context, controller, controller.selectedSftpRoot.value) 
+              : null,
+          icon: const Icon(Icons.edit, size: 18),
+          tooltip: '编辑SFTP根目录',
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          padding: const EdgeInsets.all(4),
+        )),
         // 删除按钮
         Obx(() => IconButton(
           onPressed: controller.selectedSftpRoot.value != null 
