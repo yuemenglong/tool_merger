@@ -163,11 +163,53 @@ class ProjectController extends GetxController {
 
   // 委托方法 - SFTP 管理
   void selectSftpRoot(SftpFileRoot? root) => _sftpController.selectSftpRoot(root);
-  Future<void> createSftpRoot(String name, String host, int port, String user, String password, String path) => 
-      _sftpController.createSftpRoot(name, host, port, user, password, path);
+  Future<void> createSftpRoot(
+    String name,
+    String host,
+    int port,
+    String user,
+    String password,
+    String path, {
+    SftpAuthType? authType,
+    String? privateKeyPath,
+    String? passphrase,
+  }) =>
+      _sftpController.createSftpRoot(
+        name,
+        host,
+        port,
+        user,
+        password,
+        path,
+        authType: authType,
+        privateKeyPath: privateKeyPath,
+        passphrase: passphrase,
+      );
   Future<void> deleteSftpRoot(SftpFileRoot root) => _sftpController.deleteSftpRoot(root);
-  Future<void> updateSftpRoot(SftpFileRoot root, String name, String host, int port, String user, String password, String path) => 
-      _sftpController.updateSftpRoot(root, name, host, port, user, password, path);
+  Future<void> updateSftpRoot(
+    SftpFileRoot root,
+    String name,
+    String host,
+    int port,
+    String user,
+    String password,
+    String path, {
+    SftpAuthType? authType,
+    String? privateKeyPath,
+    String? passphrase,
+  }) =>
+      _sftpController.updateSftpRoot(
+        root,
+        name,
+        host,
+        port,
+        user,
+        password,
+        path,
+        authType: authType,
+        privateKeyPath: privateKeyPath,
+        passphrase: passphrase,
+      );
   Future<void> toggleSftpRootEnabled(SftpFileRoot root) => _sftpController.toggleSftpRootEnabled(root);
 
   // 委托方法 - 扩展管理

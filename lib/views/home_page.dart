@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:file_picker/file_picker.dart';
 import '../controllers/project_controller.dart';
 import '../config.dart';
 import '../entity/entity.dart';
@@ -228,122 +229,39 @@ class ToolMergerHomePage extends StatelessWidget {
 
   // 显示 SFTP Root 添加/编辑对话框
   void _showSftpRootDialog(BuildContext context, ProjectController controller, [SftpFileRoot? editRoot]) {
-    final nameController = TextEditingController(text: editRoot?.name ?? '');
-    final hostController = TextEditingController(text: editRoot?.host ?? '');
-    final portController = TextEditingController(text: (editRoot?.port ?? 22).toString());
-    final userController = TextEditingController(text: editRoot?.user ?? '');
-    final passwordController = TextEditingController(text: editRoot?.password ?? '');
-    final pathController = TextEditingController(text: editRoot?.path ?? '');
-
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(editRoot != null ? '编辑 SFTP 根目录' : '添加 SFTP 根目录'),
-          content: SizedBox(
-            width: 400,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  autofocus: true,
-                  enableInteractiveSelection: true,
-                  decoration: const InputDecoration(
-                    labelText: '名称',
-                    hintText: '输入显示名称',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: hostController,
-                  enableInteractiveSelection: true,
-                  decoration: const InputDecoration(
-                    labelText: '主机地址',
-                    hintText: '例如: 192.168.1.100',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: portController,
-                  enableInteractiveSelection: true,
-                  decoration: const InputDecoration(
-                    labelText: '端口',
-                    hintText: '默认: 22',
-                  ),
-                  keyboardType: TextInputType.number,
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: userController,
-                  enableInteractiveSelection: true,
-                  decoration: const InputDecoration(
-                    labelText: '用户名',
-                    hintText: '输入用户名',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: passwordController,
-                  enableInteractiveSelection: true,
-                  decoration: const InputDecoration(
-                    labelText: '密码',
-                    hintText: '输入密码',
-                  ),
-                  obscureText: true,
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: pathController,
-                  enableInteractiveSelection: true,
-                  decoration: const InputDecoration(
-                    labelText: '根路径',
-                    hintText: '例如: /home/user/projects',
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('取消'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final name = nameController.text.trim();
-                final host = hostController.text.trim();
-                final portText = portController.text.trim();
-                final user = userController.text.trim();
-                final password = passwordController.text;
-                final path = pathController.text.trim();
-
-                if (name.isEmpty || host.isEmpty || user.isEmpty) {
-                  Get.snackbar('错误', '请填写必要的字段（名称、主机地址、用户名）', duration: const Duration(seconds: 1));
-                  return;
-                }
-
-                int port;
-                try {
-                  port = int.parse(portText.isEmpty ? '22' : portText);
-                } catch (e) {
-                  Get.snackbar('错误', '端口必须是有效的数字', duration: const Duration(seconds: 1));
-                  return;
-                }
-
-                if (editRoot != null) {
-                  await controller.updateSftpRoot(editRoot, name, host, port, user, password, path);
-                } else {
-                  await controller.createSftpRoot(name, host, port, user, password, path);
-                }
-
-                Navigator.of(context).pop();
-              },
-              child: Text(editRoot != null ? '更新' : '添加'),
-            ),
-          ],
+        return _SftpRootDialog(
+          editRoot: editRoot,
+          onSave: (data) async {
+            if (editRoot != null) {
+              await controller.updateSftpRoot(
+                editRoot,
+                data['name']!,
+                data['host']!,
+                int.parse(data['port']!),
+                data['user']!,
+                data['password']!,
+                data['path']!,
+                authType: data['authType'] as SftpAuthType?,
+                privateKeyPath: data['privateKeyPath'],
+                passphrase: data['passphrase'],
+              );
+            } else {
+              await controller.createSftpRoot(
+                data['name']!,
+                data['host']!,
+                int.parse(data['port']!),
+                data['user']!,
+                data['password']!,
+                data['path']!,
+                authType: data['authType'] as SftpAuthType?,
+                privateKeyPath: data['privateKeyPath'],
+                passphrase: data['passphrase'],
+              );
+            }
+          },
         );
       },
     );
@@ -389,5 +307,297 @@ class ToolMergerHomePage extends StatelessWidget {
         settings: RouteSettings(arguments: sftpRoot),
       ),
     );
+  }
+}
+
+class _SftpRootDialog extends StatefulWidget {
+  final SftpFileRoot? editRoot;
+  final Future<void> Function(Map<String, dynamic> data) onSave;
+
+  const _SftpRootDialog({
+    this.editRoot,
+    required this.onSave,
+  });
+
+  @override
+  State<_SftpRootDialog> createState() => _SftpRootDialogState();
+}
+
+class _SftpRootDialogState extends State<_SftpRootDialog> {
+  late final TextEditingController nameController;
+  late final TextEditingController hostController;
+  late final TextEditingController portController;
+  late final TextEditingController userController;
+  late final TextEditingController passwordController;
+  late final TextEditingController pathController;
+  late final TextEditingController privateKeyPathController;
+  late final TextEditingController passphraseController;
+  
+  late SftpAuthType selectedAuthType;
+
+  @override
+  void initState() {
+    super.initState();
+    final editRoot = widget.editRoot;
+    nameController = TextEditingController(text: editRoot?.name ?? '');
+    hostController = TextEditingController(text: editRoot?.host ?? '');
+    portController = TextEditingController(text: (editRoot?.port ?? 22).toString());
+    userController = TextEditingController(text: editRoot?.user ?? '');
+    passwordController = TextEditingController(text: editRoot?.password ?? '');
+    pathController = TextEditingController(text: editRoot?.path ?? '');
+    privateKeyPathController = TextEditingController(text: editRoot?.privateKeyPath ?? '');
+    passphraseController = TextEditingController(text: editRoot?.passphrase ?? '');
+    selectedAuthType = editRoot?.authType ?? SftpAuthType.password;
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    hostController.dispose();
+    portController.dispose();
+    userController.dispose();
+    passwordController.dispose();
+    pathController.dispose();
+    privateKeyPathController.dispose();
+    passphraseController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.editRoot != null ? '编辑 SFTP 根目录' : '添加 SFTP 根目录'),
+      content: SizedBox(
+        width: 500,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Basic connection info
+              TextField(
+                controller: nameController,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: '名称 *',
+                  hintText: '输入显示名称',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: hostController,
+                decoration: const InputDecoration(
+                  labelText: '主机地址 *',
+                  hintText: '例如: 192.168.1.100',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: portController,
+                decoration: const InputDecoration(
+                  labelText: '端口',
+                  hintText: '默认: 22',
+                ),
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: userController,
+                decoration: const InputDecoration(
+                  labelText: '用户名 *',
+                  hintText: '输入用户名',
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              // Authentication type selection
+              const Text(
+                '认证方式',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<SftpAuthType>(
+                value: selectedAuthType,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                items: const [
+                  DropdownMenuItem(
+                    value: SftpAuthType.password,
+                    child: Text('密码认证'),
+                  ),
+                  DropdownMenuItem(
+                    value: SftpAuthType.privateKey,
+                    child: Text('SSH密钥认证'),
+                  ),
+                  DropdownMenuItem(
+                    value: SftpAuthType.both,
+                    child: Text('混合认证（优先密钥）'),
+                  ),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    selectedAuthType = value!;
+                  });
+                },
+              ),
+              const SizedBox(height: 16),
+              
+              // Password field (shown for password and both auth)
+              if (selectedAuthType == SftpAuthType.password || 
+                  selectedAuthType == SftpAuthType.both) ...[
+                TextField(
+                  controller: passwordController,
+                  decoration: InputDecoration(
+                    labelText: selectedAuthType == SftpAuthType.both ? '密码 (可选)' : '密码 *',
+                    hintText: '输入密码',
+                  ),
+                  obscureText: true,
+                ),
+                const SizedBox(height: 12),
+              ],
+              
+              // Private key fields (shown for privateKey and both auth)
+              if (selectedAuthType == SftpAuthType.privateKey || 
+                  selectedAuthType == SftpAuthType.both) ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: privateKeyPathController,
+                        decoration: const InputDecoration(
+                          labelText: '私钥文件路径 *',
+                          hintText: '例如: /home/user/.ssh/id_ed25519',
+                        ),
+                        readOnly: true,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      onPressed: _pickPrivateKeyFile,
+                      icon: const Icon(Icons.folder_open, size: 18),
+                      label: const Text('选择'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: passphraseController,
+                  decoration: const InputDecoration(
+                    labelText: 'Passphrase (可选)',
+                    hintText: '如果私钥已加密，请输入密码短语',
+                  ),
+                  obscureText: true,
+                ),
+                const SizedBox(height: 12),
+              ],
+              
+              TextField(
+                controller: pathController,
+                decoration: const InputDecoration(
+                  labelText: '根路径',
+                  hintText: '例如: /home/user/projects',
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+          child: const Text('取消'),
+        ),
+        ElevatedButton(
+          onPressed: _handleSave,
+          child: Text(widget.editRoot != null ? '更新' : '添加'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _pickPrivateKeyFile() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.any,
+      dialogTitle: '选择SSH私钥文件',
+      initialDirectory: null,
+    );
+
+    if (result != null && result.files.single.path != null) {
+      setState(() {
+        privateKeyPathController.text = result.files.single.path!;
+      });
+    }
+  }
+
+  Future<void> _handleSave() async {
+    final name = nameController.text.trim();
+    final host = hostController.text.trim();
+    final portText = portController.text.trim();
+    final user = userController.text.trim();
+    final password = passwordController.text;
+    final path = pathController.text.trim();
+    final privateKeyPath = privateKeyPathController.text.trim();
+    final passphrase = passphraseController.text.trim();
+
+    // Validation
+    if (name.isEmpty || host.isEmpty || user.isEmpty) {
+      Get.snackbar('错误', '请填写必要的字段（名称、主机地址、用户名）', 
+          duration: const Duration(seconds: 2));
+      return;
+    }
+
+    // Validate auth-specific fields
+    if (selectedAuthType == SftpAuthType.password && password.isEmpty) {
+      Get.snackbar('错误', '密码认证模式下必须提供密码', 
+          duration: const Duration(seconds: 2));
+      return;
+    }
+
+    if (selectedAuthType == SftpAuthType.privateKey && privateKeyPath.isEmpty) {
+      Get.snackbar('错误', 'SSH密钥认证模式下必须选择私钥文件', 
+          duration: const Duration(seconds: 2));
+      return;
+    }
+
+    if (selectedAuthType == SftpAuthType.both && 
+        password.isEmpty && privateKeyPath.isEmpty) {
+      Get.snackbar('错误', '混合认证模式下至少需要提供密码或私钥文件', 
+          duration: const Duration(seconds: 2));
+      return;
+    }
+
+    int port;
+    try {
+      port = int.parse(portText.isEmpty ? '22' : portText);
+    } catch (e) {
+      Get.snackbar('错误', '端口必须是有效的数字', 
+          duration: const Duration(seconds: 2));
+      return;
+    }
+
+    try {
+      await widget.onSave({
+        'name': name,
+        'host': host,
+        'port': port.toString(),
+        'user': user,
+        'password': password,
+        'path': path,
+        'authType': selectedAuthType,
+        'privateKeyPath': privateKeyPath.isEmpty ? null : privateKeyPath,
+        'passphrase': passphrase.isEmpty ? null : passphrase,
+      });
+      Navigator.of(context).pop();
+    } catch (e) {
+      Get.snackbar('错误', '保存失败: $e', 
+          duration: const Duration(seconds: 2));
+    }
   }
 }

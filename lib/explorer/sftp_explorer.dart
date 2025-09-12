@@ -130,7 +130,10 @@ class SftpExplorerController extends GetxController {
             host: root.host!,
             port: root.port!,
             user: root.user!,
-            password: root.password!,
+            password: root.password,
+            authType: root.authType ?? SftpAuthType.password,
+            privateKeyPath: root.privateKeyPath,
+            passphrase: root.passphrase,
           );
           SftpConnectionManager().removeConnectionByInfo(connectionInfo);
         }
@@ -261,7 +264,10 @@ class SftpExplorerController extends GetxController {
         host: root.host!,
         port: root.port!,
         user: root.user!,
-        password: root.password!,
+        password: root.password,
+        authType: root.authType ?? SftpAuthType.password,
+        privateKeyPath: root.privateKeyPath,
+        passphrase: root.passphrase,
       );
       SftpConnectionManager().removeConnectionByInfo(connectionInfo);
       await refresh();

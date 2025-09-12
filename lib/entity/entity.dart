@@ -80,6 +80,8 @@ class TargetExtension {
 
 enum ProjectFileType { local, sftp }
 
+enum SftpAuthType { password, privateKey, both }
+
 class ProjectItem {
   String? name;
   String? path;
@@ -229,6 +231,10 @@ class SftpFileRoot {
   bool? enabled;
   DateTime? createTime;
   DateTime? updateTime;
+  // SSH key authentication fields
+  SftpAuthType? authType;
+  String? privateKeyPath;
+  String? passphrase;
 
   SftpFileRoot({
     this.name,
@@ -240,6 +246,9 @@ class SftpFileRoot {
     this.enabled,
     this.createTime,
     this.updateTime,
+    this.authType,
+    this.privateKeyPath,
+    this.passphrase,
   });
 
   SftpFileRoot.fromJson(Map<String, dynamic> json) {
@@ -252,6 +261,15 @@ class SftpFileRoot {
     enabled = json['enabled'] ?? true;
     createTime = json['createTime'] != null ? DateTime.parse(json['createTime']) : null;
     updateTime = json['updateTime'] != null ? DateTime.parse(json['updateTime']) : null;
+    // Parse auth type, default to password for backward compatibility
+    authType = json['authType'] != null 
+        ? SftpAuthType.values.firstWhere(
+            (e) => e.toString() == 'SftpAuthType.${json['authType']}',
+            orElse: () => SftpAuthType.password,
+          )
+        : SftpAuthType.password;
+    privateKeyPath = json['privateKeyPath'];
+    passphrase = json['passphrase'];
   }
 
   Map<String, dynamic> toJson() {
@@ -265,6 +283,9 @@ class SftpFileRoot {
     data['enabled'] = enabled ?? true;
     data['createTime'] = createTime?.toIso8601String();
     data['updateTime'] = updateTime?.toIso8601String();
+    data['authType'] = (authType ?? SftpAuthType.password).toString().split('.').last;
+    data['privateKeyPath'] = privateKeyPath;
+    data['passphrase'] = passphrase;
     return data;
   }
 
@@ -278,7 +299,10 @@ class SftpFileRoot {
         other.user == user &&
         other.password == password &&
         other.path == path &&
-        other.enabled == enabled;
+        other.enabled == enabled &&
+        other.authType == authType &&
+        other.privateKeyPath == privateKeyPath &&
+        other.passphrase == passphrase;
   }
 
   @override
@@ -291,6 +315,9 @@ class SftpFileRoot {
       password,
       path,
       enabled,
+      authType,
+      privateKeyPath,
+      passphrase,
     );
   }
 }

@@ -124,6 +124,7 @@ class SftpController extends GetxController {
         password: '',
         path: '/home/developer/projects',
         enabled: true,
+        authType: SftpAuthType.password,
         createTime: DateTime.now().subtract(const Duration(days: 7)),
         updateTime: DateTime.now().subtract(const Duration(hours: 2)),
       ),
@@ -135,6 +136,7 @@ class SftpController extends GetxController {
         password: '',
         path: '/opt/test',
         enabled: false,
+        authType: SftpAuthType.password,
         createTime: DateTime.now().subtract(const Duration(days: 3)),
         updateTime: DateTime.now().subtract(const Duration(days: 1)),
       ),
@@ -167,7 +169,17 @@ class SftpController extends GetxController {
     selectedSftpRoot.value = exactMatch;
   }
 
-  Future<void> createSftpRoot(String name, String host, int port, String user, String password, String path) async {
+  Future<void> createSftpRoot(
+    String name,
+    String host,
+    int port,
+    String user,
+    String password,
+    String path, {
+    SftpAuthType? authType,
+    String? privateKeyPath,
+    String? passphrase,
+  }) async {
     final newRoot = SftpFileRoot(
       name: name,
       host: host,
@@ -176,6 +188,9 @@ class SftpController extends GetxController {
       password: password,
       path: path,
       enabled: true,
+      authType: authType ?? SftpAuthType.password,
+      privateKeyPath: privateKeyPath,
+      passphrase: passphrase,
       createTime: DateTime.now(),
       updateTime: DateTime.now(),
     );
@@ -199,13 +214,27 @@ class SftpController extends GetxController {
     Get.snackbar('成功', 'SFTP 根目录已删除', duration: const Duration(seconds: 1));
   }
 
-  Future<void> updateSftpRoot(SftpFileRoot root, String name, String host, int port, String user, String password, String path) async {
+  Future<void> updateSftpRoot(
+    SftpFileRoot root,
+    String name,
+    String host,
+    int port,
+    String user,
+    String password,
+    String path, {
+    SftpAuthType? authType,
+    String? privateKeyPath,
+    String? passphrase,
+  }) async {
     root.name = name;
     root.host = host;
     root.port = port;
     root.user = user;
     root.password = password;
     root.path = path;
+    root.authType = authType ?? root.authType ?? SftpAuthType.password;
+    root.privateKeyPath = privateKeyPath;
+    root.passphrase = passphrase;
     root.updateTime = DateTime.now();
     
     sftpRoots.refresh();
@@ -224,12 +253,7 @@ class SftpController extends GetxController {
 
   // 连接管理方法
   void clearConnection(SftpFileRoot root) {
-    final connectionInfo = SftpConnectionInfo(
-      host: root.host!,
-      port: root.port!,
-      user: root.user!,
-      password: root.password!,
-    );
+    final connectionInfo = _createConnectionInfo(root);
     SftpConnectionManager().removeConnectionByInfo(connectionInfo);
     Get.snackbar('成功', '已清理 ${root.name} 的连接缓存', duration: const Duration(seconds: 1));
   }
@@ -245,12 +269,7 @@ class SftpController extends GetxController {
 
   Future<bool> testConnection(SftpFileRoot root) async {
     try {
-      final connectionInfo = SftpConnectionInfo(
-        host: root.host!,
-        port: root.port!,
-        user: root.user!,
-        password: root.password!,
-      );
+      final connectionInfo = _createConnectionInfo(root);
       
       await SftpConnectionManager().withConn(connectionInfo, (sftp) async {
         // Test basic functionality by listing root path
@@ -263,5 +282,17 @@ class SftpController extends GetxController {
       Get.snackbar('错误', '连接 ${root.name} 失败: $e', duration: const Duration(seconds: 2));
       return false;
     }
+  }
+
+  SftpConnectionInfo _createConnectionInfo(SftpFileRoot root) {
+    return SftpConnectionInfo(
+      host: root.host!,
+      port: root.port!,
+      user: root.user!,
+      password: root.password,
+      authType: root.authType ?? SftpAuthType.password,
+      privateKeyPath: root.privateKeyPath,
+      passphrase: root.passphrase,
+    );
   }
 }

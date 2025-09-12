@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import '../services/sftp_connection_manager.dart';
+import '../entity/entity.dart';
 
 abstract class UniFile {
   /*定义常见的文件操作(只读)，如
@@ -222,6 +223,7 @@ class SftpFile extends UniFile {
       port: _port,
       user: _user,
       password: _password,
+      authType: SftpAuthType.password,
     );
 
     return await SftpConnectionManager().withConn(connectionInfo, (sftp) async {
@@ -242,6 +244,7 @@ class SftpFile extends UniFile {
       port: _port,
       user: _user,
       password: _password,
+      authType: SftpAuthType.password,
     );
 
     return await SftpConnectionManager().withConn(connectionInfo, (sftp) async {
@@ -277,6 +280,7 @@ class SftpFile extends UniFile {
         port: _port,
         user: _user,
         password: _password,
+        authType: SftpAuthType.password,
       );
 
       return await SftpConnectionManager().withConn(connectionInfo, (sftp) async {
@@ -300,6 +304,7 @@ class SftpFile extends UniFile {
         port: _port,
         user: _user,
         password: _password,
+        authType: SftpAuthType.password,
       );
 
       return await SftpConnectionManager().withConn(connectionInfo, (sftp) async {
@@ -333,6 +338,7 @@ class SftpFile extends UniFile {
         port: _port,
         user: _user,
         password: _password,
+        authType: SftpAuthType.password,
       );
 
       return await SftpConnectionManager().withConn(connectionInfo, (sftp) async {

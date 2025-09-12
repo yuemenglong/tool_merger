@@ -1,21 +1,29 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:dartssh2/dartssh2.dart';
 import 'dart:collection';
+import '../entity/entity.dart';
 
 class SftpConnectionInfo {
   final String host;
   final int port;
   final String user;
-  final String password;
+  final String? password;
+  final SftpAuthType authType;
+  final String? privateKeyPath;
+  final String? passphrase;
 
   SftpConnectionInfo({
     required this.host,
     required this.port,
     required this.user,
-    required this.password,
+    this.password,
+    required this.authType,
+    this.privateKeyPath,
+    this.passphrase,
   });
 
-  String get key => '$host:$port:$user';
+  String get key => '$host:$port:$user:${authType.toString()}:${privateKeyPath ?? ""}';
 
   @override
   bool operator ==(Object other) =>
@@ -25,10 +33,13 @@ class SftpConnectionInfo {
           host == other.host &&
           port == other.port &&
           user == other.user &&
-          password == other.password;
+          password == other.password &&
+          authType == other.authType &&
+          privateKeyPath == other.privateKeyPath &&
+          passphrase == other.passphrase;
 
   @override
-  int get hashCode => host.hashCode ^ port.hashCode ^ user.hashCode ^ password.hashCode;
+  int get hashCode => Object.hash(host, port, user, password, authType, privateKeyPath, passphrase);
 }
 
 class SftpConnectionEntry {
@@ -161,11 +172,26 @@ class SftpConnectionManager {
   }
 
   Future<SftpConnectionEntry> _createSingleConnection(SftpConnectionInfo info) async {
-    final client = SSHClient(
-      await SSHSocket.connect(info.host, info.port),
-      username: info.user,
-      onPasswordRequest: () => info.password,
-    );
+    final socket = await SSHSocket.connect(info.host, info.port);
+    
+    SSHClient client;
+    
+    switch (info.authType) {
+      case SftpAuthType.privateKey:
+        client = await _createClientWithPrivateKey(socket, info);
+        break;
+      case SftpAuthType.both:
+        client = await _createClientWithBothAuth(socket, info);
+        break;
+      case SftpAuthType.password:
+      default:
+        client = SSHClient(
+          socket,
+          username: info.user,
+          onPasswordRequest: () => info.password ?? '',
+        );
+        break;
+    }
 
     final sftp = await client.sftp();
     
@@ -174,6 +200,59 @@ class SftpConnectionManager {
       sftp: sftp,
       info: info,
     );
+  }
+
+  Future<SSHClient> _createClientWithPrivateKey(SSHSocket socket, SftpConnectionInfo info) async {
+    if (info.privateKeyPath == null || info.privateKeyPath!.isEmpty) {
+      throw Exception('Private key path is required for private key authentication');
+    }
+    
+    final privateKeyFile = File(info.privateKeyPath!);
+    if (!await privateKeyFile.exists()) {
+      throw Exception('Private key file not found: ${info.privateKeyPath}');
+    }
+    
+    final privateKeyContent = await privateKeyFile.readAsString();
+    
+    try {
+      // Check if the private key is encrypted
+      final isEncrypted = SSHKeyPair.isEncryptedPem(privateKeyContent);
+      
+      List<SSHKeyPair> keyPairs;
+      if (isEncrypted && info.passphrase != null && info.passphrase!.isNotEmpty) {
+        keyPairs = SSHKeyPair.fromPem(privateKeyContent, info.passphrase!);
+      } else if (!isEncrypted) {
+        keyPairs = SSHKeyPair.fromPem(privateKeyContent);
+      } else {
+        throw Exception('Private key is encrypted but no passphrase provided');
+      }
+      
+      return SSHClient(
+        socket,
+        username: info.user,
+        identities: keyPairs,
+      );
+    } catch (e) {
+      throw Exception('Failed to load private key: $e');
+    }
+  }
+
+  Future<SSHClient> _createClientWithBothAuth(SSHSocket socket, SftpConnectionInfo info) async {
+    try {
+      // Try private key authentication first
+      return await _createClientWithPrivateKey(socket, info);
+    } catch (e) {
+      // If private key authentication fails, try password authentication
+      if (info.password != null && info.password!.isNotEmpty) {
+        return SSHClient(
+          socket,
+          username: info.user,
+          onPasswordRequest: () => info.password!,
+        );
+      } else {
+        throw Exception('Both private key and password authentication failed. Private key error: $e');
+      }
+    }
   }
 
   Future<SftpConnectionEntry> _getAvailableConnection(SftpConnectionInfo info) async {
