@@ -153,11 +153,11 @@ class ItemSectionView extends StatelessWidget {
           constraints: const BoxConstraints(minWidth: 600),
           child: Row(
             children: [
-              CommonWidgets.buildItemHeaderCell(context, '状态', 80),
-              CommonWidgets.buildItemHeaderCell(context, '启用', 80),
-              CommonWidgets.buildItemHeaderCell(context, '名称', 160),
-              CommonWidgets.buildItemHeaderCell(context, '打开', 80),
-              CommonWidgets.buildItemHeaderCell(context, '路径', 200),
+              CommonWidgets.buildItemHeaderCell(context, '状态', 60),
+              CommonWidgets.buildItemHeaderCell(context, '启用', 60),
+              CommonWidgets.buildItemHeaderCell(context, '名称', 240),
+              CommonWidgets.buildItemHeaderCell(context, '打开', 60),
+              CommonWidgets.buildItemHeaderCell(context, '路径', 180),
             ],
           ),
         ),
@@ -259,7 +259,7 @@ class ItemSectionView extends StatelessWidget {
 
   Widget _buildItemStatusCell(BuildContext context, ProjectItem item) {
     return SizedBox(
-      width: 80,
+      width: 60,
       child: Center(
         child: Transform.scale(
           scale: 0.7,
@@ -280,7 +280,7 @@ class ItemSectionView extends StatelessWidget {
 
   Widget _buildItemEnabledCell(BuildContext context, ProjectItem item) {
     return SizedBox(
-      width: 80,
+      width: 60,
       child: Center(
         child: Transform.scale(
           scale: 0.8,
@@ -299,7 +299,7 @@ class ItemSectionView extends StatelessWidget {
 
   Widget _buildItemNameCell(BuildContext context, ProjectItem item, bool isSelected) {
     return SizedBox(
-      width: 160,
+      width: 240,
       child: FutureBuilder<bool>(
         future: _isItemDirectory(item.path),
         builder: (context, snapshot) {
@@ -359,7 +359,7 @@ class ItemSectionView extends StatelessWidget {
 
   Widget _buildItemOpenCell(BuildContext context, ProjectItem item) {
     return SizedBox(
-      width: 80,
+      width: 60,
       child: Center(
         child: IconButton(
           icon: const Icon(Icons.open_in_new_outlined),
@@ -377,16 +377,20 @@ class ItemSectionView extends StatelessWidget {
 
   Widget _buildItemPathCell(BuildContext context, ProjectItem item) {
     return SizedBox(
-      width: 200,
+      width: 180,
       child: Padding(
         padding: const EdgeInsets.only(left: 4),
-        child: Text(
-          item.path ?? '',
-          style: TextStyle(
-            color: Colors.grey.shade700,
-            fontSize: AppConfig.secondaryFontSize,
+        child: Tooltip(
+          message: item.path ?? '',
+          waitDuration: const Duration(milliseconds: 500),
+          child: Text(
+            item.path ?? '',
+            style: TextStyle(
+              color: Colors.grey.shade700,
+              fontSize: AppConfig.secondaryFontSize,
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
-          overflow: TextOverflow.ellipsis,
         ),
       ),
     );
