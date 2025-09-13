@@ -275,10 +275,34 @@ class SftpExplorerController extends GetxController {
   }
 }
 
-class SftpExplorer extends StatelessWidget {
+class SftpExplorer extends StatefulWidget {
   final SftpExplorerController controller;
 
   const SftpExplorer({super.key, required this.controller});
+
+  @override
+  State<SftpExplorer> createState() => _SftpExplorerState();
+}
+
+class _SftpExplorerState extends State<SftpExplorer> {
+  late final TextEditingController _searchController;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    widget.controller.setSearchQuery('');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -304,36 +328,43 @@ class SftpExplorer extends StatelessWidget {
       child: Row(
         children: [
           Obx(() => IconButton(
-            onPressed: controller.canGoBack ? controller.goBack : null,
+            onPressed: widget.controller.canGoBack ? widget.controller.goBack : null,
             icon: const Icon(Icons.arrow_back),
             tooltip: '后退',
           )),
           IconButton(
-            onPressed: controller.goUp,
+            onPressed: widget.controller.goUp,
             icon: const Icon(Icons.arrow_upward),
             tooltip: '上级目录',
           ),
           IconButton(
-            onPressed: controller.refresh,
+            onPressed: widget.controller.refresh,
             icon: const Icon(Icons.refresh),
             tooltip: '刷新',
           ),
           const SizedBox(width: 16),
           Expanded(
-            child: TextField(
-              decoration: const InputDecoration(
+            child: Obx(() => TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
                 hintText: '搜索文件...',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                prefixIcon: widget.controller.searchQuery.isNotEmpty 
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: _clearSearch,
+                        tooltip: '清空搜索',
+                      )
+                    : const Icon(Icons.search),
+                border: const OutlineInputBorder(),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               ),
-              onChanged: controller.setSearchQuery,
-            ),
+              onChanged: widget.controller.setSearchQuery,
+            )),
           ),
           const SizedBox(width: 16),
           // 项目操作按钮
           Obx(() => ElevatedButton.icon(
-            onPressed: controller.selectedFiles.isNotEmpty 
+            onPressed: widget.controller.selectedFiles.isNotEmpty 
                 ? () => _handleCreateProject(context)
                 : null,
             icon: const Icon(Icons.create_new_folder, size: 16),
@@ -346,7 +377,7 @@ class SftpExplorer extends StatelessWidget {
           )),
           const SizedBox(width: 8),
           Obx(() => ElevatedButton.icon(
-            onPressed: controller.selectedFiles.isNotEmpty 
+            onPressed: widget.controller.selectedFiles.isNotEmpty 
                 ? () => _handleAddToCurrentProject(context)
                 : null,
             icon: const Icon(Icons.add, size: 16),
@@ -364,7 +395,7 @@ class SftpExplorer extends StatelessWidget {
 
   Widget _buildBreadcrumb(BuildContext context) {
     return Obx(() {
-      final breadcrumbs = controller.breadcrumbs;
+      final breadcrumbs = widget.controller.breadcrumbs;
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
@@ -374,9 +405,9 @@ class SftpExplorer extends StatelessWidget {
         child: Row(
           children: [
             GestureDetector(
-              onTap: () => controller.navigateToPath(controller.currentRoot?.path ?? '/'),
+              onTap: () => widget.controller.navigateToPath(widget.controller.currentRoot?.path ?? '/'),
               child: Text(
-                controller.currentRoot?.name ?? 'SFTP',
+                widget.controller.currentRoot?.name ?? 'SFTP',
                 style: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline),
               ),
             ),
@@ -387,7 +418,7 @@ class SftpExplorer extends StatelessWidget {
                 children: [
                   const Text(' > '),
                   GestureDetector(
-                    onTap: () => controller.navigateToBreadcrumb(index),
+                    onTap: () => widget.controller.navigateToBreadcrumb(index),
                     child: Text(
                       part,
                       style: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline),
@@ -404,21 +435,21 @@ class SftpExplorer extends StatelessWidget {
 
   Widget _buildFileList(BuildContext context) {
     return Obx(() {
-      if (controller.isLoading) {
+      if (widget.controller.isLoading) {
         return const Center(child: CircularProgressIndicator());
       }
 
-      if (controller.error.isNotEmpty) {
+      if (widget.controller.error.isNotEmpty) {
         return Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Icon(Icons.error, size: 64, color: Colors.red),
               const SizedBox(height: 16),
-              Text(controller.error),
+              Text(widget.controller.error),
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: controller.refresh,
+                onPressed: widget.controller.refresh,
                 child: const Text('重试'),
               ),
             ],
@@ -432,36 +463,36 @@ class SftpExplorer extends StatelessWidget {
 
   Widget _buildDataTable(BuildContext context) {
     return Obx(() {
-      final files = controller.files;
+      final files = widget.controller.files;
       
       return SingleChildScrollView(
         child: DataTable(
           sortColumnIndex: _getSortColumnIndex(),
-          sortAscending: controller.sortAscending,
+          sortAscending: widget.controller.sortAscending,
           showCheckboxColumn: true,
           columns: [
             DataColumn(
               label: const Text('名称'),
-              onSort: (columnIndex, ascending) => controller.setSortColumn('name'),
+              onSort: (columnIndex, ascending) => widget.controller.setSortColumn('name'),
             ),
             DataColumn(
               label: const Text('类型'),
-              onSort: (columnIndex, ascending) => controller.setSortColumn('type'),
+              onSort: (columnIndex, ascending) => widget.controller.setSortColumn('type'),
             ),
             DataColumn(
               label: const Text('大小'),
-              onSort: (columnIndex, ascending) => controller.setSortColumn('size'),
+              onSort: (columnIndex, ascending) => widget.controller.setSortColumn('size'),
               numeric: true,
             ),
             const DataColumn(label: Text('修改时间')),
           ],
           rows: files.map((file) => DataRow(
-            selected: controller.selectedFiles.contains(file),
+            selected: widget.controller.selectedFiles.contains(file),
             onSelectChanged: (selected) {
               if (selected ?? false) {
-                controller.selectFile(file);
+                widget.controller.selectFile(file);
               } else {
-                controller.selectedFiles.remove(file);
+                widget.controller.selectedFiles.remove(file);
               }
             },
             cells: [
@@ -478,12 +509,12 @@ class SftpExplorer extends StatelessWidget {
                 ),
                 onTap: () {
                   if (file.isDirectory) {
-                    controller.enterDirectory(file);
+                    widget.controller.enterDirectory(file);
                   }
                 },
               ),
               DataCell(Text(file.isDirectory ? '文件夹' : '文件')),
-              DataCell(Text(file.isDirectory ? '' : controller.formatFileSize(file.size))),
+              DataCell(Text(file.isDirectory ? '' : widget.controller.formatFileSize(file.size))),
               DataCell(Text(file.modifiedTime?.toString().substring(0, 19) ?? '')),
             ],
           )).toList(),
@@ -493,7 +524,7 @@ class SftpExplorer extends StatelessWidget {
   }
 
   int _getSortColumnIndex() {
-    switch (controller.sortColumn) {
+    switch (widget.controller.sortColumn) {
       case 'name': return 0;
       case 'type': return 1;
       case 'size': return 2;
@@ -503,9 +534,9 @@ class SftpExplorer extends StatelessWidget {
 
   Widget _buildStatusBar(BuildContext context) {
     return Obx(() {
-      final totalFiles = controller.files.length;
-      final selectedFiles = controller.selectedFiles.length;
-      final directories = controller.files.where((f) => f.isDirectory).length;
+      final totalFiles = widget.controller.files.length;
+      final selectedFiles = widget.controller.selectedFiles.length;
+      final directories = widget.controller.files.where((f) => f.isDirectory).length;
       final files = totalFiles - directories;
 
       return Container(
@@ -522,7 +553,7 @@ class SftpExplorer extends StatelessWidget {
               Text('已选择 $selectedFiles 项'),
             ],
             const Spacer(),
-            Text('路径: ${controller.displayPath}'),
+            Text('路径: ${widget.controller.displayPath}'),
           ],
         ),
       );
@@ -530,26 +561,26 @@ class SftpExplorer extends StatelessWidget {
   }
 
   void _handleCreateProject(BuildContext context) {
-    if (controller.selectedFiles.isEmpty) return;
+    if (widget.controller.selectedFiles.isEmpty) return;
     
     // 获取ProjectController实例
     try {
       final projectController = Get.find<ProjectController>();
       // 调用SFTP项目创建方法
-      projectController.handleSftpProjectDropAndCreate(controller.selectedFiles);
+      projectController.handleSftpProjectDropAndCreate(widget.controller.selectedFiles);
     } catch (e) {
       Get.snackbar('错误', '无法获取项目控制器: $e', duration: const Duration(seconds: 1));
     }
   }
 
   void _handleAddToCurrentProject(BuildContext context) {
-    if (controller.selectedFiles.isEmpty) return;
+    if (widget.controller.selectedFiles.isEmpty) return;
     
     // 获取ProjectController实例
     try {
       final projectController = Get.find<ProjectController>();
       // 调用SFTP文件添加方法
-      projectController.handleSftpDroppedFiles(controller.selectedFiles);
+      projectController.handleSftpDroppedFiles(widget.controller.selectedFiles);
     } catch (e) {
       Get.snackbar('错误', '无法获取项目控制器: $e', duration: const Duration(seconds: 1));
     }
